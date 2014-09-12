@@ -4,10 +4,7 @@ An opinionated yet lightweight services routing library for Clojure Ring.
 
 ## Releases and Depency Information 
 
-Most recent stable version:
-```clj
-[somni "0.1.1"]
-```
+[![Clojars Project](http://clojars.org/somni/latest-version.svg)](http://clojars.org/somni)
 
 Depends upon Clojure and prismatic/schema.
 
