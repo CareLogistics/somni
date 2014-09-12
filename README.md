@@ -6,7 +6,7 @@ An opinionated yet lightweight services routing library for Clojure Ring.
 
 Most recent stable version:
 ```clj
-[carelogistics.somni "0.1.1"]
+[somni "0.1.1"]
 ```
 
 Depends upon Clojure and prismatic/schema.
