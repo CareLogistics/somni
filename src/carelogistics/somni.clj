@@ -78,8 +78,6 @@
 
 (defn- map-first [f xs] (map (fn [[a & b]] (cons (f a) b)) xs))
 
-(defn- map-second [f xs] (map (fn [[a b & c]] (cons a (cons (f b) c))) xs))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Client-side errors
 
@@ -229,9 +227,7 @@
 (defn wrap-deps
   "Injects a handler's dependencies into its requests"
   [handler deps]
-  (if (seq deps)
-    (fn [request] (handler (merge deps request)))
-    handler))
+  (fn [request] (handler (merge deps request))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Binding middleware
@@ -247,8 +243,6 @@
 
   #_=> {:params {:b \"bar\", :a \"baz\"}, :uri \"/foo/bar/baz/quux\"}"
   [handler bindings]
-
-  (pp/pprint bindings)
 
   (fn [{:as request :keys [uri]}]
     (let [path (vec (uri->path uri))
@@ -270,10 +264,15 @@
   "Updates the resource with wrap-bindings middleware if bindings are defined
   for this resource."
   [table]
-  (for [[uri details] table]
-    (if-some [bindings (seq (get-binding-info uri))]
-      [uri (assoc details :resource (wrap-bindings (:resource details) bindings))]
-      [uri details])))
+  (for [[uri {:as details :keys [resource]}] table]
+
+    [uri (if-some [bindings (seq (get-binding-info uri))]
+           (assoc details
+             :resource (with-meta
+                         (wrap-bindings resource bindings)
+                         (meta resource)))
+
+           details)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Parsing mime-types and accept header
@@ -567,6 +566,7 @@
          ;; Negotiation response middleware
          (wrap wrap-serialization mhs))]
 
+    ^{:resource-definition resource}
     (fn [{:as request :keys [trace-id]}]
       (let [trace-id (or trace-id (gen-trace-id))]
 
@@ -596,7 +596,6 @@
     (do
       (assert (ifn? hfn) (str "Handler function not defined for " rsc))
 
-      ^{:resource-definition rsc}
       {:uris      uris
        :resource (if (ifn? hfn)
                     (stack-middleware rsc hfn options)
@@ -648,6 +647,7 @@
                             (or r nf))) ; otherwise a wildcard overrides nf
          ;; found resource
          r r
+
          ;; no route found
          :else nf)))))
 
@@ -753,14 +753,19 @@
          (let [rs (resource-schema handlers sec-handlers schemas deps)]
            (s/validate [rs] resources))]}
 
-  (-> (build-resources resources handlers (assoc options
-                                            :on-error on-error
-                                            :on-missing on-missing))
-      (lift-uris)
-      (attach-bindings)
-      (make-routing-trie)
-      (make-router on-missing)
-      (wrap-exception-handling on-error)))
+  (let [options (assoc options :on-error on-error :on-missing on-missing)
+
+        router (-> (build-resources resources handlers options)
+                   (lift-uris)
+                   (attach-bindings)
+                   (make-routing-trie)
+                   (make-router on-missing))
+
+        router-meta (meta router)]
+
+    (with-meta
+      (wrap-exception-handling router on-error)
+      router-meta)))
 
 ;;; TODO: add a version of make-handlers that uses resolve to wire handlers
 
