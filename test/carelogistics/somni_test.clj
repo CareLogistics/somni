@@ -197,7 +197,7 @@
                    hello-handlers
                    {}))
 
-(hello-router {:uri "hello"})
-(hello-router {:uri "hello/bob"})
+(prn (hello-router {:uri "hello"})
+     (hello-router {:uri "hello/bob"}))
 
 "(-: begin the testing :-)"
