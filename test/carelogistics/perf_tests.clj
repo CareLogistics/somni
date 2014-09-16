@@ -93,6 +93,80 @@
     (println (format "Time for %d matches using compojure with 28 routes" *cnt*))
     (time (dotimes [_ *cnt*] (ctx (rand-nth reqs))))))
 
+(deftest compojure-first-of-28-test []
+  (let [ctx (routes
+             (GET "/index.html" [] e)
+             (GET "/a.html" [] e)
+             (GET "/b.html" [] e)
+             (GET "/c.html" [] e)
+             (GET "/d.html" [] e)
+             (GET "/e.html" [] e)
+             (GET "/blog/f.html" [] e)
+             (GET "/blog/g.html" [] e)
+             (GET "/blog/h.html" [] e)
+             (GET "/blog/i.html" [] e)
+             (GET "/gallery/j.html" [] e)
+             (GET "/gallery/k.html" [] e)
+             (GET "/gallery/l.html" [] e)
+             (GET "/sites/m.html" [] e)
+             (GET "/sites/n.html" [] e)
+             (GET "/sites/o.html" [] e)
+             (GET "/sites/p.html" [] e)
+             (GET "/m/q.html" [] e)
+             (GET "/m/r.html" [] e)
+             (GET "/m/s.html" [] e)
+             (GET "/m/t.html" [] e)
+             (GET "/m/u.html" [] e)
+             (GET "/foo/bar/v.html" [] e)
+             (GET "/foo/baz/w.html" [] e)
+             (GET "/foo/quux/x.html" [] e)
+             (GET "/lambda/y.html" [] e)
+             (GET "/lambda/z.html" [] e)
+             (GET "/lambda/a.html" [] e))
+
+        req (request :get "/index.html")]
+
+    (is (= (ctx req) {:status 200, :headers {}, :body "e"}))
+    (println (format "Time for %d matches first route using compojure with 28 routes" *cnt*))
+    (time (dotimes [_ *cnt*] (ctx req)))))
+
+(deftest compojure-last-of-28-test []
+  (let [ctx (routes
+             (GET "/index.html" [] e)
+             (GET "/a.html" [] e)
+             (GET "/b.html" [] e)
+             (GET "/c.html" [] e)
+             (GET "/d.html" [] e)
+             (GET "/e.html" [] e)
+             (GET "/blog/f.html" [] e)
+             (GET "/blog/g.html" [] e)
+             (GET "/blog/h.html" [] e)
+             (GET "/blog/i.html" [] e)
+             (GET "/gallery/j.html" [] e)
+             (GET "/gallery/k.html" [] e)
+             (GET "/gallery/l.html" [] e)
+             (GET "/sites/m.html" [] e)
+             (GET "/sites/n.html" [] e)
+             (GET "/sites/o.html" [] e)
+             (GET "/sites/p.html" [] e)
+             (GET "/m/q.html" [] e)
+             (GET "/m/r.html" [] e)
+             (GET "/m/s.html" [] e)
+             (GET "/m/t.html" [] e)
+             (GET "/m/u.html" [] e)
+             (GET "/foo/bar/v.html" [] e)
+             (GET "/foo/baz/w.html" [] e)
+             (GET "/foo/quux/x.html" [] e)
+             (GET "/lambda/y.html" [] e)
+             (GET "/lambda/z.html" [] e)
+             (GET "/lambda/a.html" [] e))
+
+        req (request :get "/lambda/a.html")]
+
+    (is (= (ctx req) {:status 200, :headers {}, :body "e"}))
+    (println (format "Time for %d matches last route using compojure with 28 routes" *cnt*))
+    (time (dotimes [_ *cnt*] (ctx req)))))
+
 (deftest somni-test []
   (let [h (somni/make-handler
            [{:uris uris :handler :x}]
