@@ -69,7 +69,9 @@ Compojures routing is O(n).  Somni uses a routing tree to achieve O(log n) perfo
 Time for 1000000 matches to 10000 somni routes
 "Elapsed time: 3908.063 msecs"
 ```
-Somni's routing performance is faster than other Ring routing routing libraries I've tested - currently: gudu, bidi & compojure.  The above test generates 10000 URI routes with between 2 and 5 URI path segments.  The difference between 28 & 10k routes is minimal.
+Somni's routing performance is faster than other Ring routing routing libraries I've tested - currently: gudu, bidi & compojure.  The above test generates 10000 URI routes with between 2 and 5 URI path segments.  The difference between 28 & 10k routes is minimal.<p>
+
+There are additional tests comparing compojure and somni performance in perf-tests.clj.
 
 ## License
 
