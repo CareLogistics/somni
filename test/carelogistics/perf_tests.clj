@@ -15,7 +15,7 @@
            "/foo/bar/v.html" "/foo/baz/w.html" "/foo/quux/x.html"
            "/lambda/y.html" "/lambda/z.html" "/lambda/a.html"])
 
-(def reqs (map (partial request :get) uris))
+(def reqs (vec (map (partial request :get) uris)))
 
 (defn e [req] {:status 200 :body "e"})
 
@@ -62,4 +62,28 @@
 
     (is (= (:body (h (rand-nth reqs))) "e"))
     (println (format "Time for %d matches using somni routes" *cnt*))
+    (time (dotimes [_ *cnt*] (h (rand-nth reqs))))))
+
+(deftest somni-big-test []
+  (let [paths ["foo" "bar" "baz" "quux" "blog" "assets" "images"]
+
+        rand-path (fn [] (clojure.string/join "/"
+                                             (map (fn [_] (rand-nth paths))
+                                                  (range (inc (rand-int 4))))))
+
+        rand-name (fn [] (re-find #"\w*" (str (java.util.UUID/randomUUID))))
+
+        uris  (map (fn [_] (str (rand-path) "/" (rand-name))) (range 10000))
+
+        reqs (vec (map (partial request :get) uris))
+
+        h (somni/make-handler
+           [{:uris uris :handler :x}]
+           {:x e}
+           {})]
+
+    h
+
+    (is (= (:body (h (rand-nth reqs))) "e"))
+    (println (format "Time for %d matches to 10000 somni routes" *cnt*))
     (time (dotimes [_ *cnt*] (h (rand-nth reqs))))))
