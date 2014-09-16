@@ -618,13 +618,10 @@
   [table]
   (reduce
    (fn [a [ks v]]
-     (if-some [x (get-in a ks)]
-       (throw
-        (AssertionError.
-         {:error "Routing conflict"
-          :route1 (:resource-definition (meta x))
-          :route2 (:resource-definition (meta v))}))
-       (assoc-in a ks v)))
+     (when-some [x (get-in a ks)]
+       (assert (nil? x)
+               (format "Routing conflict %s already defined." (apply str ks))))
+     (assoc-in a ks v))
    {} table))
 
 (defn- make-routing-trie [table]
