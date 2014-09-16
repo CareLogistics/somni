@@ -19,6 +19,45 @@
 
 (defn e [req] {:status 200 :body "e"})
 
+(deftest compojure-7-test []
+  (let [ctx (routes
+             (GET "/index.html" [] e)
+             (GET "/a.html" [] e)
+             (GET "/b.html" [] e)
+             (GET "/c.html" [] e)
+             (GET "/d.html" [] e)
+             (GET "/e.html" [] e)
+             (GET "/blog/f.html" [] e))
+
+        reqs (vec (take 7 reqs))]
+
+    (is (= (ctx (rand-nth reqs)) {:status 200, :headers {}, :body "e"}))
+    (println (format "Time for %d matches using compojure with 7 routes" *cnt*))
+    (time (dotimes [_ *cnt*] (ctx (rand-nth reqs))))))
+
+(deftest compojure-14-test []
+  (let [ctx (routes
+             (GET "/index.html" [] e)
+             (GET "/a.html" [] e)
+             (GET "/b.html" [] e)
+             (GET "/c.html" [] e)
+             (GET "/d.html" [] e)
+             (GET "/e.html" [] e)
+             (GET "/blog/f.html" [] e)
+             (GET "/blog/g.html" [] e)
+             (GET "/blog/h.html" [] e)
+             (GET "/blog/i.html" [] e)
+             (GET "/gallery/j.html" [] e)
+             (GET "/gallery/k.html" [] e)
+             (GET "/gallery/l.html" [] e)
+             (GET "/sites/m.html" [] e))
+
+        reqs (vec (take 14 reqs))]
+
+    (is (= (ctx (rand-nth reqs)) {:status 200, :headers {}, :body "e"}))
+    (println (format "Time for %d matches using compojure with 14 routes" *cnt*))
+    (time (dotimes [_ *cnt*] (ctx (rand-nth reqs))))))
+
 (deftest compojure-control-test []
   (let [ctx (routes
              (GET "/index.html" [] e)
@@ -51,7 +90,7 @@
              (GET "/lambda/a.html" [] e))]
 
     (is (= (ctx (rand-nth reqs)) {:status 200, :headers {}, :body "e"}))
-    (println (format "Time for %d matches using Compojure routes" *cnt*))
+    (println (format "Time for %d matches using compojure with 28 routes" *cnt*))
     (time (dotimes [_ *cnt*] (ctx (rand-nth reqs))))))
 
 (deftest somni-test []
@@ -61,7 +100,7 @@
            {})]
 
     (is (= (:body (h (rand-nth reqs))) "e"))
-    (println (format "Time for %d matches using somni routes" *cnt*))
+    (println (format "Time for %d matches with 28 somni routes" *cnt*))
     (time (dotimes [_ *cnt*] (h (rand-nth reqs))))))
 
 (deftest somni-big-test []
