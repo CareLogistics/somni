@@ -7,8 +7,6 @@
 ***Latest Version***:<br>
 [![Clojars Project](http://clojars.org/somni/latest-version.svg)](http://clojars.org/somni)
 
-====================================
-
 ## Why write yet another Ring routing library?
 Honestly, it was an accident.  We needed software to create handlers with middleware specified in configuration files.  Once that was written, we noticed that we had written a router.
 
