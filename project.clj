@@ -1,4 +1,4 @@
-(defproject somni "0.1.3"
+(defproject somni "0.2.0"
   :description "An opinionated yet lightweight services routing library"
   :url "https://github.com/CareLogistics/somni"
   :license {:name "Eclipse Public License 1.0"
@@ -8,8 +8,5 @@
                  [prismatic/schema "0.2.6"]]
 
   :profiles
-  {:uberjar {:aot :all}
-
-   :test {:dependencies [[bidi "1.10.4"]
-                         [compojure "1.1.9"]
+  {:test {:dependencies [[compojure "1.1.9"]
                          [ring-mock "0.1.5"]]}})

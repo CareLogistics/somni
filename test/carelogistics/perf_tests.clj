@@ -1,11 +1,11 @@
 (ns carelogistics.perf-tests
-  (:require [bidi.bidi :refer :all]
-            [carelogistics.somni :as somni]
+  (:require [carelogistics.somni :as somni]
             [clojure.test :refer :all]
             [compojure.core :refer (GET routes)]
             [ring.mock.request :refer (request)]))
 
-(def ^:dynamic *cnt* 1000000)
+;;;
+(def ^:dynamic *cnt* 500000)
 
 (def uris ["/index.html" "/a.html" "/b.html" "/c.html" "/d.html" "/e.html"
            "/blog/f.html" "/blog/g.html" "/blog/h.html" "/blog/i.html"
