@@ -2,9 +2,9 @@
 #### An opinionated yet lightweight services routing library for Clojure Ring.
 
 ***Travis-CI***<br>
-![image](https://travis-ci.org/CareLogistics/somni.svg?branch=master)<p>
-
-***Latest Version***:<br>
+[![Build Status](https://travis-ci.org/CareLogistics/somni.svg?branch=master)](https://travis-ci.org/CareLogistics/somni)
+<p>
+***Latest Version***<br>
 [![Clojars Project](http://clojars.org/somni/latest-version.svg)](http://clojars.org/somni)
 
 ## Why write yet another Ring routing library?
