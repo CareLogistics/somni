@@ -399,9 +399,9 @@
   (fn [{:as request
        :keys [body content-type]
        :or   {content-type "application/octet-stream"}
-       {:strs [accept]} :headers}]
+       {:strs [accept Accept]} :headers}]
 
-    (let [[ser] (lookup-serializers media-handlers accept)
+    (let [[ser] (lookup-serializers media-handlers (or accept Accept))
           des (lookup-deserializer media-handlers content-type)]
 
       (cond
@@ -421,15 +421,16 @@
 
   ^{:mhs media-handlers}
   (fn [{:as response
-       :keys [content-type body ::mime status]}]
+       :keys [body ::mime status headers]}]
 
     (cond
      (nil? body) (next-fn response)     ; Nothing to serialize
 
-     content-type (next-fn response)    ;
+     (or (get headers "content-type")   ; TODO: + handlers control Accepts
+         (get headers "Content-Type")) (next-fn response)
 
-     (nil? mime) (if (>= status 400)    ; Currently allowing errors to
-                   (next-fn response)   ; skip serialization.
+     (nil? mime) (if (>= status 400)    ; errors skip serialization
+                   (next-fn response)
                    (server-error response))
 
      ;; TODO: do the correct thing with the charset
@@ -764,7 +765,19 @@
       (wrap-exception-handling router on-error)
       router-meta)))
 
-;;; TODO: add a version of make-handlers that uses resolve to wire handlers
+(defmacro resolve-handlers
+  [resources & [handlers]]
+  `(reduce
+    (fn [a# rsc#]
+      (let [h# (:handler rsc#)]
+        (cond
+         (a# h#)  a#
+         (symbol? h#) (if-some [h-fn# (resolve h#)]
+                        (assoc a# h# h-fn#)
+                        (throw (RuntimeException.
+                                (str "Unable to resolve symbol: " h#)))))))
+    (or ~handlers {})
+    ~resources))
 
 (defn add-prefix
   "This will add a base URI prefix to all resources."
