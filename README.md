@@ -1,8 +1,12 @@
-# somni
+***Travis-CI***<br>
+![image](https://travis-ci.org/CareLogistics/somni.svg?branch=master)<p>
 
-### An opinionated yet lightweight services routing library for Clojure Ring.
-
+***Latest Version***:<br>
 [![Clojars Project](http://clojars.org/somni/latest-version.svg)](http://clojars.org/somni)
+
+====================================
+# somni
+#### An opinionated yet lightweight services routing library for Clojure Ring.
 
 ## Why write yet another Ring routing library?
 Honestly, it was an accident.  We needed software to create handlers with middleware specified in configuration files.  Once that was written, we noticed that we had written a router.
@@ -13,7 +17,7 @@ Honestly, it was an accident.  We needed software to create handlers with middle
 - Wildcards can be bound to keywords (e.g., "/foo/:bar/baz" adds :bar to request params)
 - Alternates by specifying multiple URIs in the configuration
 - Quick feedback from incorrect configuration 
-- Separates **security** concerns from handlers
+- Separates security concerns from handlers
 - Full support for Options Http method
 - Request negotiation
 - Request validation with Prismatic schema
@@ -27,34 +31,7 @@ Honestly, it was an accident.  We needed software to create handlers with middle
 - serializers & deserializers
 
 ## A simple example
-```
-(require '[carelogistics.somni :as somni])
-
-;; Write a ring handler
-(defn hello [request]
-  (let [name (get-in request [:params :name] "world")]
-    {:status 200, 
-     :body (str "Hello " name "!")}))
-
-;; Create a map pointing to all your handlers
-(def hello-handlers
-  {:hello hello})
-
-;; Configure your resources, this is pure data
-(def hello-resources
-  [{:uris   ["hello", "hello/:name"], 
-    :handler :hello}])
-
-;; Now generate a router with make-handler
-(def hello-router (somni/make-handler
-                   hello-resources
-                   hello-handlers
-                   {}))
-                   
-;; Finally invoke this router as a ring handler
-(hello-router {:uri "hello"})     ; ... "hello world!"
-(hello-router {:uri "hello/bob"}) ; ... "hello bob!"
-```
+<script src="http://www.refheap.com/76a45c6f084a165ac3cce70ce.js"></script>
 
 ##Performance
 ```
