@@ -1,11 +1,20 @@
+;;; Copyright (c) Care Logistics, inc. All rights reserved.
+;;; The use and distribution terms for this software are covered by the
+;;; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php)
+;;; which can be found in the file epl-v10.html at the root of this
+;;; distribution.
+;;; By using this software in any fashion, you are agreeing to be bound by
+;;; the terms of this license.
+;;; You must not remove this notice, or any other, from this software.
+
 (ns carelogistics.perf-tests
   (:require [carelogistics.somni :as somni]
             [clojure.test :refer :all]
             [compojure.core :refer (GET routes)]
             [ring.mock.request :refer (request)]))
 
-;;;
-(def ^:dynamic *cnt* 500000)
+;;; made this much lower count test to accomodate travis-ci
+(def ^:dynamic *cnt* 50000)
 
 (def uris ["/index.html" "/a.html" "/b.html" "/c.html" "/d.html" "/e.html"
            "/blog/f.html" "/blog/g.html" "/blog/h.html" "/blog/i.html"
@@ -33,7 +42,8 @@
         reqs (vec (take 7 reqs))]
 
     (is (= (ctx (rand-nth reqs)) {:status 200, :headers {}, :body "e"}))
-    (println (format "Time for %d matches using compojure with 7 routes" *cnt*))
+    (println (format "Time for %d matches using compojure with 7 routes"
+                     *cnt*))
     (time (dotimes [_ *cnt*] (ctx (rand-nth reqs))))))
 
 (def compojure-14 (routes
@@ -57,7 +67,8 @@
         reqs (vec (take 14 reqs))]
 
     (is (= (ctx (rand-nth reqs)) {:status 200, :headers {}, :body "e"}))
-    (println (format "Time for %d matches using compojure with 14 routes" *cnt*))
+    (println (format "Time for %d matches using compojure with 14 routes"
+                     *cnt*))
     (time (dotimes [_ *cnt*] (ctx (rand-nth reqs))))))
 
 (def compojure-28 (routes
@@ -94,7 +105,8 @@
   (let [ctx compojure-28]
 
     (is (= (ctx (rand-nth reqs)) {:status 200, :headers {}, :body "e"}))
-    (println (format "Time for %d matches using compojure with 28 routes" *cnt*))
+    (println (format "Time for %d matches using compojure with 28 routes"
+                     *cnt*))
     (time (dotimes [_ *cnt*] (ctx (rand-nth reqs))))))
 
 (deftest compojure-one-route-test []
@@ -102,7 +114,8 @@
         req (request :get "/index.html")]
 
     (is (= (ctx req) {:status 200, :headers {}, :body "e"}))
-    (println (format "Time for %d matches using compojure with one route" *cnt*))
+    (println (format "Time for %d matches using compojure with one route"
+                     *cnt*))
     (time (dotimes [_ *cnt*] (ctx req)))))
 
 (deftest compojure-last-of-28-test []
@@ -110,7 +123,9 @@
         req (request :get "/lambda/a.html")]
 
     (is (= (ctx req) {:status 200, :headers {}, :body "e"}))
-    (println (format "Time for %d matches last route using compojure with 28 routes" *cnt*))
+    (println
+     (format "Time for %d matches last route using compojure with 28 routes"
+             *cnt*))
     (time (dotimes [_ *cnt*] (ctx req)))))
 
 (deftest somni-test []
@@ -151,8 +166,6 @@
            [{:uris uris :handler :x}]
            {:x e}
            {})]
-
-    h
 
     (is (= (:body (h (rand-nth reqs))) "e"))
     (println (format "Time for %d matches to 10000 somni routes" *cnt*))
