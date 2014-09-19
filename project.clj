@@ -9,4 +9,5 @@
 
   :profiles
   {:test {:dependencies [[compojure "1.1.9"]
-                         [ring-mock "0.1.5"]]}})
+                         [ring-mock "0.1.5"]
+                         [criterium "0.4.3"]]}})
