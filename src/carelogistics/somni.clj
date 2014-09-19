@@ -96,9 +96,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Server-side errors
 
+(defn- server-error? [status] (and (number? status)
+                                   (>= status 500)
+                                   (<  status 600)
+                                   status))
+
 (defn server-error
-  [r & [dev-mode]]
-  {:status 500,
+  "This is a general purpose server error.  It includes r either in console
+  *out* or in the body of the http response.  If there is a server error
+  :status set in r, it will be the :status used in the response.
+  "
+  [{:as r :keys [status]} & [dev-mode]]
+
+  {:status (or (server-error? status) 500)
    :body (if (or dev-mode (:dev-mode r))
            (pp/write r :stream nil)
            (do (pp/write r)
@@ -107,36 +117,37 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Middleware
 
-(defn- exception-details
+(defn ex-details
   "Creates a pretty printed string for an exception's message, stack
-  trace and cause."
-
+  trace and cause.
+  "
   [^Throwable e]
+
   (let [details {:exception  (type e)
                  :message    (.getMessage e)
                  :stackTrace (remove #(re-matches #"^(clojure|java).*" %)
                                      (map str (.getStackTrace e)))}]
 
     (if-some [cause (.getCause e)]
-      (assoc details :cause (exception-details cause))
+      (assoc details :cause (ex-details cause))
       details)))
 
 (defn wrap-exception-handling
-  "Returns the handler that catches exceptions generated in any layer
-  and builds an HTTP response with a proper status code and error
-  message.
+  "Returns a function that takes an r (request or response).  It invokes next-fn
+  with r, catches exceptions thrown by next-fn.
 
-  Returns 500 when handler throws an exception."
-
+  on-error is invoked with r merged with ex-data and ex-details added as :error.
+  "
   [next-fn on-error]
 
   {:pre [next-fn on-error]}
 
   (fn [r]
-    (try
-      (next-fn r)
-      (catch Exception e
-        (on-error (assoc r :error (exception-details e)))))))
+    (let [x (try (next-fn r) (catch Exception e e))]
+      (if (instance? Throwable x)
+        (on-error (assoc (merge r (ex-data x))
+                    :error (ex-details x)))
+        x))))
 
 (defn wrap-access-control
   "Wraps the handler in an ACL check.  ACLs are specified on http
