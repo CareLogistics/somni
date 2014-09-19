@@ -1,4 +1,4 @@
-(defproject somni "0.2.0"
+(defproject somni "0.2.1"
   :description "An opinionated yet lightweight services routing library"
   :url "https://github.com/CareLogistics/somni"
   :license {:name "Eclipse Public License 1.0"
@@ -9,4 +9,5 @@
 
   :profiles
   {:test {:dependencies [[compojure "1.1.9"]
-                         [ring-mock "0.1.5"]]}})
+                         [ring-mock "0.1.5"]
+                         [criterium "0.4.3"]]}})

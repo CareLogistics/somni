@@ -97,9 +97,9 @@
 ;;; Server-side errors
 
 (defn server-error
-  [{:as r :keys [dev-mode]}]
+  [r & [dev-mode]]
   {:status 500,
-   :body (if dev-mode
+   :body (if (or dev-mode (:dev-mode r))
            (pp/write r :stream nil)
            (do (pp/write r)
                "Internal server error"))})
@@ -523,7 +523,6 @@
   make-handler."
   [resource handler {:as    options
                      :keys [sec-handlers, media-handlers, deps,
-                            on-missing, on-error,
                             on-request, on-response,
                             schemas, dev-mode]}]
 
@@ -682,6 +681,25 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Bring it all together
 
+(defn resolve-handlers
+  "When a resources :handler is a symbol, resolves the symbol in the caller's
+  *ns* and adding the var into the handlers.
+
+  Returns a map of handlers.
+  "
+  [resources & [handlers]]
+  (reduce
+   (fn [a rsc]
+     (let [h (:handler rsc)]
+       (cond
+        (a h)  a
+        (symbol? h) (if-some [h-fn (resolve h)]
+                      (assoc a h h-fn)
+                      (throw (RuntimeException.
+                              (str "Unable to resolve symbol: " h)))))))
+   (or handlers {})
+   resources))
+
 (defn make-handler
   "
   RETURNS a Ring handler with middleware associated based upon
@@ -737,47 +755,38 @@
   +=====+                                 |         |           |          +===+
                                        on-error  from-clj  on-response
   "
+  ([resources {:as options, :keys [handlers]}]
+     (make-handler resources
+                   (resolve-handlers resources handlers)
+                   options))
 
-  [resources handlers {:as    options
-                       :keys [sec-handlers, media-handlers, deps,
-                              on-missing, on-error,
-                              on-request, on-response,
-                              schemas, dev-mode]
-                       :or   {on-missing not-found
-                              on-error   server-error}}]
+  ([resources handlers {:as    options
+                        :keys [sec-handlers, media-handlers, deps,
+                               on-missing, on-error,
+                               on-request, on-response,
+                               schemas, dev-mode]
+                        :or   {on-missing not-found}}]
 
-  {:pre [(seq resources)
-         (seq handlers)
-         (let [rs (resource-schema handlers sec-handlers schemas deps)]
-           (s/validate [rs] resources))]}
+     {:pre [(seq resources)
+            (seq handlers)
+            (let [rs (resource-schema handlers sec-handlers schemas deps)]
+              (s/validate [rs] resources))]}
 
-  (let [options (assoc options :on-error on-error :on-missing on-missing)
+     (let [on-error (or on-error #(server-error % dev-mode))
 
-        router (-> (build-resources resources handlers options)
-                   (lift-uris)
-                   (attach-bindings)
-                   (make-routing-trie)
-                   (make-router on-missing))
+           options (assoc options
+                     :on-missing on-missing
+                     :on-error   on-error)
 
-        router-meta (meta router)]
+           router (-> (build-resources resources handlers options)
+                      (lift-uris)
+                      (attach-bindings)
+                      (make-routing-trie)
+                      (make-router on-missing))]
 
-    (with-meta
-      (wrap-exception-handling router on-error)
-      router-meta)))
-
-(defmacro resolve-handlers
-  [resources & [handlers]]
-  `(reduce
-    (fn [a# rsc#]
-      (let [h# (:handler rsc#)]
-        (cond
-         (a# h#)  a#
-         (symbol? h#) (if-some [h-fn# (resolve h#)]
-                        (assoc a# h# h-fn#)
-                        (throw (RuntimeException.
-                                (str "Unable to resolve symbol: " h#)))))))
-    (or ~handlers {})
-    ~resources))
+       (with-meta
+         (wrap-exception-handling router on-error)
+         (meta router)))))
 
 (defn add-prefix
   "This will add a base URI prefix to all resources."

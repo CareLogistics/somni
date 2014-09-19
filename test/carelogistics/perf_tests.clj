@@ -11,10 +11,8 @@
   (:require [carelogistics.somni :as somni]
             [clojure.test :refer :all]
             [compojure.core :refer (GET routes)]
-            [ring.mock.request :refer (request)]))
-
-;;; made this much lower count test to accomodate travis-ci
-(def ^:dynamic *cnt* 50000)
+            [ring.mock.request :refer (request)]
+            [criterium.core :as criterium]))
 
 (def uris ["/index.html" "/a.html" "/b.html" "/c.html" "/d.html" "/e.html"
            "/blog/f.html" "/blog/g.html" "/blog/h.html" "/blog/i.html"
@@ -26,130 +24,95 @@
 
 (def reqs (vec (map (partial request :get) uris)))
 
-(defn e [req] {:status 200 :body "e"})
+(defn e [_] {:status 200 :body "e"})
 
-(def compojure-7 (routes
+(def compojure-1
+  (let [ctx (routes (GET "/index.html" [] e))
+        req (request :get "/index.html")]
+    (fn [] (ctx req))))
+
+(def compojure-7
+  (let [ctx (routes
+             (GET "/index.html" [] e)
+             (GET "/a.html" [] e)
+             (GET "/b.html" [] e)
+             (GET "/c.html" [] e)
+             (GET "/d.html" [] e)
+             (GET "/e.html" [] e)
+             (GET "/blog/f.html" [] e))
+        reqs (vec (take 7 reqs))]
+    (fn [] (ctx (rand-nth reqs)))))
+
+(def compojure-14
+  (let [ctx (routes
+             (GET "/index.html" [] e)
+             (GET "/a.html" [] e)
+             (GET "/b.html" [] e)
+             (GET "/c.html" [] e)
+             (GET "/d.html" [] e)
+             (GET "/e.html" [] e)
+             (GET "/blog/f.html" [] e)
+             (GET "/blog/g.html" [] e)
+             (GET "/blog/h.html" [] e)
+             (GET "/blog/i.html" [] e)
+             (GET "/gallery/j.html" [] e)
+             (GET "/gallery/k.html" [] e)
+             (GET "/gallery/l.html" [] e)
+             (GET "/sites/m.html" [] e))
+        reqs (vec (take 14 reqs))]
+    (fn [] (ctx (rand-nth reqs)))))
+
+(def c-28-routes (routes
                   (GET "/index.html" [] e)
                   (GET "/a.html" [] e)
                   (GET "/b.html" [] e)
                   (GET "/c.html" [] e)
                   (GET "/d.html" [] e)
                   (GET "/e.html" [] e)
-                  (GET "/blog/f.html" [] e)))
+                  (GET "/blog/f.html" [] e)
+                  (GET "/blog/g.html" [] e)
+                  (GET "/blog/h.html" [] e)
+                  (GET "/blog/i.html" [] e)
+                  (GET "/gallery/j.html" [] e)
+                  (GET "/gallery/k.html" [] e)
+                  (GET "/gallery/l.html" [] e)
+                  (GET "/sites/m.html" [] e)
+                  (GET "/sites/n.html" [] e)
+                  (GET "/sites/o.html" [] e)
+                  (GET "/sites/p.html" [] e)
+                  (GET "/m/q.html" [] e)
+                  (GET "/m/r.html" [] e)
+                  (GET "/m/s.html" [] e)
+                  (GET "/m/t.html" [] e)
+                  (GET "/m/u.html" [] e)
+                  (GET "/foo/bar/v.html" [] e)
+                  (GET "/foo/baz/w.html" [] e)
+                  (GET "/foo/quux/x.html" [] e)
+                  (GET "/lambda/y.html" [] e)
+                  (GET "/lambda/z.html" [] e)
+                  (GET "/lambda/a.html" [] e)))
 
-(deftest compojure-7-test []
-  (let [ctx compojure-7
-        reqs (vec (take 7 reqs))]
+(def compojure-28 (fn [] (c-28-routes (rand-nth reqs))))
 
-    (is (= (ctx (rand-nth reqs)) {:status 200, :headers {}, :body "e"}))
-    (println (format "Time for %d matches using compojure with 7 routes"
-                     *cnt*))
-    (time (dotimes [_ *cnt*] (ctx (rand-nth reqs))))))
+(def compojure-28-worst
+  (let [req (last reqs)] (fn [] (c-28-routes req))))
 
-(def compojure-14 (routes
-                   (GET "/index.html" [] e)
-                   (GET "/a.html" [] e)
-                   (GET "/b.html" [] e)
-                   (GET "/c.html" [] e)
-                   (GET "/d.html" [] e)
-                   (GET "/e.html" [] e)
-                   (GET "/blog/f.html" [] e)
-                   (GET "/blog/g.html" [] e)
-                   (GET "/blog/h.html" [] e)
-                   (GET "/blog/i.html" [] e)
-                   (GET "/gallery/j.html" [] e)
-                   (GET "/gallery/k.html" [] e)
-                   (GET "/gallery/l.html" [] e)
-                   (GET "/sites/m.html" [] e)))
-
-(deftest compojure-14-test []
-  (let [ctx compojure-14
-        reqs (vec (take 14 reqs))]
-
-    (is (= (ctx (rand-nth reqs)) {:status 200, :headers {}, :body "e"}))
-    (println (format "Time for %d matches using compojure with 14 routes"
-                     *cnt*))
-    (time (dotimes [_ *cnt*] (ctx (rand-nth reqs))))))
-
-(def compojure-28 (routes
-                   (GET "/index.html" [] e)
-                   (GET "/a.html" [] e)
-                   (GET "/b.html" [] e)
-                   (GET "/c.html" [] e)
-                   (GET "/d.html" [] e)
-                   (GET "/e.html" [] e)
-                   (GET "/blog/f.html" [] e)
-                   (GET "/blog/g.html" [] e)
-                   (GET "/blog/h.html" [] e)
-                   (GET "/blog/i.html" [] e)
-                   (GET "/gallery/j.html" [] e)
-                   (GET "/gallery/k.html" [] e)
-                   (GET "/gallery/l.html" [] e)
-                   (GET "/sites/m.html" [] e)
-                   (GET "/sites/n.html" [] e)
-                   (GET "/sites/o.html" [] e)
-                   (GET "/sites/p.html" [] e)
-                   (GET "/m/q.html" [] e)
-                   (GET "/m/r.html" [] e)
-                   (GET "/m/s.html" [] e)
-                   (GET "/m/t.html" [] e)
-                   (GET "/m/u.html" [] e)
-                   (GET "/foo/bar/v.html" [] e)
-                   (GET "/foo/baz/w.html" [] e)
-                   (GET "/foo/quux/x.html" [] e)
-                   (GET "/lambda/y.html" [] e)
-                   (GET "/lambda/z.html" [] e)
-                   (GET "/lambda/a.html" [] e)))
-
-(deftest compojure-control-test []
-  (let [ctx compojure-28]
-
-    (is (= (ctx (rand-nth reqs)) {:status 200, :headers {}, :body "e"}))
-    (println (format "Time for %d matches using compojure with 28 routes"
-                     *cnt*))
-    (time (dotimes [_ *cnt*] (ctx (rand-nth reqs))))))
-
-(deftest compojure-one-route-test []
-  (let [ctx (routes (GET "/index.html" [] e))
-        req (request :get "/index.html")]
-
-    (is (= (ctx req) {:status 200, :headers {}, :body "e"}))
-    (println (format "Time for %d matches using compojure with one route"
-                     *cnt*))
-    (time (dotimes [_ *cnt*] (ctx req)))))
-
-(deftest compojure-last-of-28-test []
-  (let [ctx compojure-28
-        req (request :get "/lambda/a.html")]
-
-    (is (= (ctx req) {:status 200, :headers {}, :body "e"}))
-    (println
-     (format "Time for %d matches last route using compojure with 28 routes"
-             *cnt*))
-    (time (dotimes [_ *cnt*] (ctx req)))))
-
-(deftest somni-test []
-  (let [h (somni/make-handler
-           [{:uris uris :handler :x}]
-           {:x e}
-           {})]
-
-    (is (= (:body (h (rand-nth reqs))) "e"))
-    (println (format "Time for %d matches using somni with 28 routes" *cnt*))
-    (time (dotimes [_ *cnt*] (h (rand-nth reqs))))))
-
-(deftest somni-one-route-test []
+(def somni-1
   (let [h (somni/make-handler
            [{:uris (take 1 uris) :handler :x}]
            {:x e}
            {})
         req (request :get "/index.html")]
+    (fn [] (h req))))
 
-    (is (= (:body (h req)) "e"))
-    (println (format "Time for %d matches using somni with one route" *cnt*))
-    (time (dotimes [_ *cnt*] (h req)))))
+(def somni-28
+  (let [h (somni/make-handler
+           [{:uris uris :handler :x}]
+           {:x e}
+           {})]
+    (fn [] (h (rand-nth reqs)))))
 
-(deftest somni-big-test []
+(def somni-10k
   (let [paths ["foo" "bar" "baz" "quux" "blog" "assets" "images"]
 
         rand-path (fn [] (clojure.string/join "/"
@@ -166,7 +129,58 @@
            [{:uris uris :handler :x}]
            {:x e}
            {})]
+    (fn [] (h (rand-nth reqs)))))
 
-    (is (= (:body (h (rand-nth reqs))) "e"))
-    (println (format "Time for %d matches to 10000 somni routes" *cnt*))
-    (time (dotimes [_ *cnt*] (h (rand-nth reqs))))))
+(deftest somni-setup-test []
+  (is (= (:body (somni-1))
+         (:body (somni-28))
+         (:body (somni-10k))
+         "e")))
+
+(deftest compojure-setup-test []
+  (is (= (compojure-1)
+         (compojure-7)
+         (compojure-14)
+         (compojure-28)
+         {:status 200, :headers {}, :body "e"})))
+
+(defn benchmark-compojure []
+  (println "#### Compojure with 1 route ####")
+  (criterium/bench (compojure-1))
+  (println)
+
+  (println "#### Compojure with 7 routes ###")
+  (criterium/bench (compojure-7))
+  (println)
+
+  (println "#### Compojure with 14 routes ##")
+  (criterium/bench (compojure-14))
+  (println)
+
+  (println "#### Compojure with 28 routes ##")
+  (criterium/bench (compojure-28))
+  (println)
+
+  (println "#### Compojure worst case routing")
+  (criterium/bench (compojure-28-worst))
+  (println))
+
+(defn benchmark-somni []
+  (println "#### Somni with 1 route ####")
+  (criterium/bench (somni-1))
+  (println)
+
+  (println "#### Somni with 28 routes ##")
+  (criterium/bench (somni-28))
+  (println)
+
+  (println "#### Somni with 10k routes #")
+  (criterium/bench (somni-10k))
+  (println))
+
+(defn run-benchmarks []
+  (benchmark-compojure)
+  (println)
+  (println "----------------------------")
+  (println)
+  (benchmark-somni))
