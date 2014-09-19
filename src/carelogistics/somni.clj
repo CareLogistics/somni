@@ -9,7 +9,8 @@
 
 (ns ^{:author "Andrew Garman"}
   carelogistics.somni
-  "An opinionated yet lightweight services routing library.
+  "
+  An opinionated yet lightweight services routing library.
 
   Though it provides several Ring middleware functions, the correct way
   to use this middleware is through the make-handler function.
@@ -62,7 +63,8 @@
   inserted into the on-request parameter of make-handler.
 
   Marshalling also belongs in another library.  Marshalling of inbound requests
-  belongs in on-request and outbound response in on-response."
+  belongs in on-request and outbound response in on-response.
+  "
   (:require [schema.core    :as s]
             [clojure.pprint :as pp]
             [clojure.string :as str]
@@ -102,7 +104,8 @@
                                    status))
 
 (defn server-error
-  "This is a general purpose server error.  It includes r either in console
+  "
+  This is a general purpose server error.  It includes r either in console
   *out* or in the body of the http response.  If there is a server error
   :status set in r, it will be the :status used in the response.
   "
@@ -118,7 +121,8 @@
 ;;; Middleware
 
 (defn ex-details
-  "Creates a pretty printed string for an exception's message, stack
+  "
+  Creates a pretty printed string for an exception's message, stack
   trace and cause.
   "
   [^Throwable e]
@@ -133,7 +137,8 @@
       details)))
 
 (defn wrap-exception-handling
-  "Returns a function that takes an r (request or response).  It invokes next-fn
+  "
+  Returns a function that takes an r (request or response).  It invokes next-fn
   with r, catches exceptions thrown by next-fn.
 
   on-error is invoked with r merged with ex-data and ex-details added as :error.
@@ -150,13 +155,15 @@
         x))))
 
 (defn wrap-access-control
-  "Wraps the handler in an ACL check.  ACLs are specified on http
+  "
+  Wraps the handler in an ACL check.  ACLs are specified on http
   methods.  If acl-fn is nil, the user's role will be extracted
   from [:identity :role] of the request.
 
   Roles are compared by name; :abc, 'abc & \"abc\" are the same role.
 
-  Returns 403 if ACL check fails."
+  Returns 403 if ACL check fails.
+  "
   [handler acls & [acl-fn policy]]
 
   {:pre [handler]}
@@ -179,8 +186,9 @@
      :else            handler)))
 
 (defn wrap-supported-methods
-  "Returns 405 if an unsupported http method is made in the request."
-
+  "
+  Returns 405 if an unsupported http method is made in the request.
+  "
   [handler ops]
 
   {:pre [handler]}
@@ -192,9 +200,10 @@
         (handler request)))))
 
 (defn wrap-schema-validation
-  "Returns 400 if the body of a pust, put or patch does not match the
-  schema."
-
+  "
+  Returns 400 if the body of a pust, put or patch does not match the
+  schema.
+  "
   [handler schema]
 
   {:pre [handler schema]}
@@ -206,12 +215,13 @@
       (handler request))))
 
 (defn wrap-authentication
-  "Extremely simple authentication.  If the security function returns
+  "
+  Extremely simple authentication.  If the security function returns
   a value, that value is associated with the request as the identity
   and the handler will be invoked.
 
-  Returns a 401 if sec-fn returns nil."
-
+  Returns a 401 if sec-fn returns nil.
+  "
   [handler sec-fn]
 
   {:pre [handler sec-fn]}
@@ -222,7 +232,9 @@
       (not-authenticated request))))
 
 (defn wrap-options
-  "Returns 200 with body that describes the resource."
+  "
+  Returns 200 with body that describes the resource.
+  "
   [handler resource & [schemas]]
 
   {:pre [handler resource]}
@@ -246,13 +258,15 @@
 (def ^:private bindings-rexp #"\w+|:(\w*)")
 
 (defn wrap-bindings
-  "Destructures the uri and binds segments into the request params.
+  "
+  Destructures the uri and binds segments into the request params.
 
   Example:
   ((wrap-bindings identity [[2 \"a\"][1 \"b\"]])
    {:uri \"/foo/bar/baz/quux\"})
 
-  #_=> {:params {:b \"bar\", :a \"baz\"}, :uri \"/foo/bar/baz/quux\"}"
+  #_=> {:params {:b \"bar\", :a \"baz\"}, :uri \"/foo/bar/baz/quux\"}
+  "
   [handler bindings]
 
   (fn [{:as request :keys [uri]}]
@@ -264,7 +278,9 @@
       (handler request))))
 
 (defn- get-binding-info
-  "Extracts binding information from a uri."
+  "
+  Extracts binding information from a uri.
+  "
   [uri]
   (->> (re-seq bindings-rexp uri)
        (map second)
@@ -272,8 +288,10 @@
        (filter second)))
 
 (defn- attach-bindings
-  "Updates the resource with wrap-bindings middleware if bindings are defined
-  for this resource."
+  "
+  Updates the resource with wrap-bindings middleware if bindings are defined
+  for this resource.
+  "
   [table]
   (for [[uri {:as details :keys [resource]}] table]
 
@@ -338,7 +356,9 @@
 ;;; Built-in media handlers, edn, x-www-form-urlencoded & "*"
 
 (defn- body->str
-  "Ridiculous helper added to make body params easier to test in the REPL."
+  "
+  Ridiculous helper added to make body params easier to test in the REPL.
+  "
   [body & [encoding]]
   (if (string? body) body (slurp body :encoding encoding)))
 
@@ -352,8 +372,10 @@
 (def ^:private form-rexp #"\s*&\s*|\s*=\s*")
 
 (defn form-decode
-  "This is basic, no frills x-www-form-urlencoded deserializer to Clojure map,
-  Keys as keywords, values as strings."
+  "
+  This is basic, no frills x-www-form-urlencoded deserializer to Clojure map,
+  Keys as keywords, values as strings.
+  "
   [body & [encoding]]
   (str->map (body->str body encoding) form-rexp))
 
@@ -375,7 +397,9 @@
 ;;; Content negotiation - only supports media type negotiation
 
 (defn- media-handler<->mime
-  "Associates a media handler to a mime type or returns nil."
+  "
+  Associates a media handler to a mime type or returns nil.
+  "
   [mhs mime]
   (letfn [(mh-lookup [mime-value]
             (first (filter #(get (:supports %) mime-value) mhs)))]
@@ -386,7 +410,9 @@
       (merge mime mh))))
 
 (defn- lookup-serializers
-  "Returns all mime-types with associated media handlers that are acceptable."
+  "
+  Returns all mime-types with associated media handlers that are acceptable.
+  "
   [mhs accept]
   (for [mime (parse-accept accept)
         :let [mime (media-handler<->mime mhs mime)]
@@ -394,16 +420,19 @@
     mime))
 
 (defn- lookup-deserializer
-  "Returns a deserializer for the given content type or nil."
+  "
+  Returns a deserializer for the given content type or nil.
+  "
   [mhs content-type]
   (let [mh (media-handler<->mime mhs (parse-mime content-type))]
     (when (:to mh) mh)))
 
 (defn- wrap-content-negotiation
-  "Checks that content negotition can be fulfilled for the request.  If neither
+  "
+  Checks that content negotition can be fulfilled for the request.  If neither
   the accept or content-type are usable, middleware returns status 406 and 415
-  respectively."
-
+  respectively.
+  "
   [handler media-handlers]
 
   ^{:mhs media-handlers}
@@ -426,8 +455,9 @@
                     (when ser {::mime ser}))))))
 
 (defn- wrap-serialization
-  "Serializes body of response with best available media handler."
-
+  "
+  Serializes body of response with best available media handler.
+  "
   [next-fn media-handlers]
 
   ^{:mhs media-handlers}
@@ -454,8 +484,9 @@
                   (assoc-in [:headers "Content-Type"] mime-type)))))))
 
 (defn- wrap-deserialization
-  "Deserializes body of request with best available media handler."
-
+  "
+  Deserializes body of request with best available media handler.
+  "
   [handler media-handlers]
 
   ^{:mhs media-handlers}
@@ -480,7 +511,9 @@
 (defn- ne-seq [x] (and (coll? x) (seq x) x))
 
 (defn- wrap
-  "Conditionally adds middleware logic based upon availability of options."
+  "
+  Conditionally adds middleware logic based upon availability of options.
+  "
   [handler middleware options]
   (cond
    (true?  options) (middleware handler)
@@ -489,9 +522,10 @@
    :else handler))
 
 (defn- get-sec-fn
-  "Matches the security handler to the resource.  If it cannot find a match
-  it will deny all access to the resource."
-
+  "
+  Matches the security handler to the resource.  If it cannot find a match
+  it will deny all access to the resource.
+  "
   [sec-handlers resource]
 
   (let [sec-req (:security resource)
@@ -507,7 +541,9 @@
              (constantly nil))))))
 
 (defn- gen-trace-id
-  "Simple, roughly ordered, fast trace id generator."
+  "
+  Simple, roughly ordered, fast trace id generator.
+  "
   []
   (java.util.UUID.
    (System/nanoTime)
@@ -515,8 +551,10 @@
       (rand-int (Integer/MAX_VALUE)))))
 
 (defn- self-described-handler
-  "Merges the resource definition from the meta data attached to a handler
-  function."
+  "
+  Merges the resource definition from the meta data attached to a handler
+  function.
+  "
   [{:as resource, r-ops :ops} handler]
 
   (let [{:keys [schema deps ops desc]} (meta handler)]
@@ -530,8 +568,10 @@
                                     ops)})))))
 
 (defn- stack-middleware
-  "Builds a resource's request & response pipeline as documented in
-  make-handler."
+  "
+  Builds a resource's request & response pipeline as documented in
+  make-handler.
+  "
   [resource handler {:as    options
                      :keys [sec-handlers, media-handlers, deps,
                             on-request, on-response,
@@ -588,7 +628,8 @@
             (response-fn))))))
 
 (defn- build-resources
-  "Collects detailed information required for construction of each resource.
+  "
+  Collects detailed information required for construction of each resource.
 
   resources is the authoritative source for all uris, security, ops & roles
 
@@ -597,7 +638,8 @@
 
   options contains maps that will be used by resources to lookup sec-handlers,
   deps, on-request, on-response, on-missing & on-error handlers.  Dependencies
-  required from handlers will also be resolved through options."
+  required from handlers will also be resolved through options.
+  "
   [resources handlers options]
 
   (for [{:as rsc, :keys [uris handler]} resources
@@ -624,8 +666,10 @@
 (defn- bindings->wildcard [uri] (str/replace uri #":\w+" "*"))
 
 (defn- table->trie
-  "Converts the flat table into a routing tree.  If items in table have the
-  same path, an AssertionError will be thrown."
+  "
+  Converts the flat table into a routing tree.  If items in table have the
+  same path, an AssertionError will be thrown.
+  "
   [table]
   (reduce
    (fn [a [ks v]]
@@ -660,9 +704,10 @@
          :else nf)))))
 
 (defn- make-router
-  "Takes a tree of path segments to resources and produces a Ring handler
-  that uses the :uri to walk the segments to the most specific resource."
-
+  "
+  Takes a tree of path segments to resources and produces a Ring handler
+  that uses the :uri to walk the segments to the most specific resource.
+  "
   [trie on-missing]
   {:pre [trie on-missing]}
 
@@ -692,26 +737,59 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Bring it all together
 
-(defn resolve-handlers
-  "When a resources :handler is a symbol, resolves the symbol in the caller's
+(defmacro resolve-handlers
+  "
+  When a resources :handler is a symbol, resolves the symbol in the caller's
   *ns* and adding the var into the handlers.
 
   Returns a map of handlers.
   "
   [resources & [handlers]]
-  (reduce
-   (fn [a rsc]
-     (let [h (:handler rsc)]
-       (cond
-        (a h)  a
-        (symbol? h) (if-some [h-fn (resolve h)]
-                      (assoc a h h-fn)
-                      (throw (RuntimeException.
-                              (str "Unable to resolve symbol: " h)))))))
-   (or handlers {})
-   resources))
+  `(reduce
+    (fn [a# rsc#]
+      (let [h# (:handler rsc#)]
+        (cond
+         (a# h#)  a#
+         (symbol? h#) (if-some [h-fn# (resolve h#)]
+                        (assoc a# h# h-fn#)
+                        (throw (RuntimeException.
+                                (str "Unable to resolve symbol: " h#)))))))
+    (or ~handlers {})
+    ~resources))
 
-(defn make-handler
+(defn make-handler*
+  "
+  Use make-handler.
+  "
+  [resources handlers {:as    options
+                         :keys [sec-handlers, media-handlers, deps,
+                                on-missing, on-error,
+                                on-request, on-response,
+                                schemas, dev-mode]
+                         :or   {on-missing not-found}}]
+
+  {:pre [(seq resources)
+         (seq handlers)
+         (let [rs (resource-schema handlers sec-handlers schemas deps)]
+           (s/validate [rs] resources))]}
+
+  (let [on-error (or on-error #(server-error % dev-mode))
+
+        options (assoc options
+                  :on-missing on-missing
+                  :on-error   on-error)
+
+        router (-> (build-resources resources handlers options)
+                   (lift-uris)
+                   (attach-bindings)
+                   (make-routing-trie)
+                   (make-router on-missing))]
+
+    (with-meta
+      (wrap-exception-handling router on-error)
+      (meta router))))
+
+(defmacro make-handler
   "
   RETURNS a Ring handler with middleware associated based upon
   configuration specified in resources.
@@ -766,38 +844,18 @@
   +=====+                                 |         |           |          +===+
                                        on-error  from-clj  on-response
   "
-  ([resources {:as options, :keys [handlers]}]
-     (make-handler resources
-                   (resolve-handlers resources handlers)
-                   options))
-
-  ([resources handlers {:as    options
-                        :keys [sec-handlers, media-handlers, deps,
-                               on-missing, on-error,
-                               on-request, on-response,
-                               schemas, dev-mode]
-                        :or   {on-missing not-found}}]
-
-     {:pre [(seq resources)
-            (seq handlers)
-            (let [rs (resource-schema handlers sec-handlers schemas deps)]
-              (s/validate [rs] resources))]}
-
-     (let [on-error (or on-error #(server-error % dev-mode))
-
-           options (assoc options
-                     :on-missing on-missing
-                     :on-error   on-error)
-
-           router (-> (build-resources resources handlers options)
-                      (lift-uris)
-                      (attach-bindings)
-                      (make-routing-trie)
-                      (make-router on-missing))]
-
-       (with-meta
-         (wrap-exception-handling router on-error)
-         (meta router)))))
+  ([resources handlers options]
+     `(make-handler* ~resources
+                     (resolve-handlers ~resources ~handlers)
+                     ~options))
+  ([resources {:as options :keys [handlers]}]
+     `(make-handler* ~resources
+                     (resolve-handlers ~resources ~handlers)
+                     ~options))
+  ([resources]
+     `(make-handler* ~resources
+                     (resolve-handlers ~resources)
+                     {})))
 
 (defn add-prefix
   "This will add a base URI prefix to all resources."
