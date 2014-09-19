@@ -1,4 +1,4 @@
-(defproject somni "0.2.0"
+(defproject somni "0.2.1"
   :description "An opinionated yet lightweight services routing library"
   :url "https://github.com/CareLogistics/somni"
   :license {:name "Eclipse Public License 1.0"
