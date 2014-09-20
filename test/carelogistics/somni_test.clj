@@ -37,6 +37,7 @@
    :in-mw  (fn [r] {:status 200, :body (str (:in-mw r))})
    :deps   (fn [r] {:status 200, :body (:abc r "eep")})
    :err    (fn [_] (throw (Exception. "hahaha")))
+   :err2   (fn [_] (throw (ex-info "missing dep" {:status 555})))
 
    :pbinds (fn [{{:keys [alpha beta]} :params}]
              {:status 200 :body [alpha beta]})
@@ -66,6 +67,7 @@
    {:uris ["/foo/baz/*"], :handler :foobaz}
    {:uris ["in-mw"], :handler :in-mw}
    {:uris ["err"], :handler :err}
+   {:uris ["err2"], :handler :err2}
    {:uris ["A", "B"], :handler :alts}
    {:uris ["/:alpha/:beta" "/foo/:beta/:alpha"], :handler :pbinds}
    {:uris ["deps"], :handler :deps, :deps [:abc]}
@@ -112,6 +114,9 @@
 
   (is (= 500 (:status  (test-handler {:uri "/err"})))
       "Exception encapsulation failed")
+
+  (is (= 555 (:status  (test-handler {:uri "/err2"})))
+      "Failed to set status correctly")
 
   (is (= (:body (test-handler {:uri "/A"}))
          (:body (test-handler {:uri "/B"}))) "Alternate routes failed"))
