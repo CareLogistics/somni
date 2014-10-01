@@ -252,7 +252,6 @@
   Injects a handler's dependencies into its requests
   "
   [handler deps]
-  (println handler " " deps)
   (fn [request] (apply handler request deps)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
