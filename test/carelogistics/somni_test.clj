@@ -19,13 +19,14 @@
           :headers {"Content-Type" "application/text"}
           :body (str body)}))
 
-(def quux
-  ^{:desc "This is a service that returns a happy message when Somni works."
-    :ops [:post]
-    :deps [:abc]
-    :schema {:x schema/Str, :y schema/Any}}
-  (fn [{:keys [abc]}]
-    (when abc {:status 200, :body "everything is just fine"})))
+(def +quux+
+  {:desc "This is a service that returns a happy message when Somni works."
+   :ops [:post]
+   :schema {:x schema/Str, :y schema/Any}})
+
+(defn ^+quux+ quux
+  [r abc]
+  (when abc {:status 200, :body "everything is just fine"}))
 
 (def sample-handlers
   {:foo    (OK "foo")
@@ -35,13 +36,13 @@
 
    :alts   (OK "alternate paths work")
    :in-mw  (fn [r] {:status 200, :body (str (:in-mw r))})
-   :deps   (fn [r] {:status 200, :body (:abc r "eep")})
+   :deps   (fn [r abc] {:status 200, :body (or abc "eep")})
    :err    (fn [_] (throw (Exception. "hahaha")))
    :err2   (fn [_] (throw (ex-info "missing dep" {:status 555})))
 
    :pbinds (fn [{{:keys [alpha beta]} :params}]
              {:status 200 :body [alpha beta]})
-   :quux   quux})
+   :quux   #'quux})
 
 (def sample-sec-handlers
   {:jwt (fn [{:keys [headers]}]

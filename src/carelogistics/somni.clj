@@ -248,9 +248,12 @@
       (handler request))))
 
 (defn wrap-deps
-  "Injects a handler's dependencies into its requests"
+  "
+  Injects a handler's dependencies into its requests
+  "
   [handler deps]
-  (fn [request] (handler (merge deps request))))
+  (println handler " " deps)
+  (fn [request] (apply handler request deps)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Binding middleware
@@ -557,7 +560,10 @@
   "
   [{:as resource, r-ops :ops} handler]
 
-  (let [{:keys [schema deps ops desc]} (meta handler)]
+  (let [handler-meta              (meta handler)
+        {:keys [schema ops desc]} (:tag handler-meta)
+        deps (seq (map (comp keyword name)
+                       (drop 1 (first (:arglists handler-meta)))))]
 
     (-> resource
         (merge (when desc   {:desc   desc}))
@@ -587,8 +593,7 @@
         (->
          handler
          ;; Inject dependencies
-         (wrap wrap-deps
-               (into {} (filter (comp (set (:deps resource)) key) deps)))
+         (wrap wrap-deps (seq (map deps (:deps resource))))
 
          ;; Add custom request middleware
          (#(reduce (fn [a m] (m a)) % on-request))
