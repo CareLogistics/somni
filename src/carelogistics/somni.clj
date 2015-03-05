@@ -592,7 +592,7 @@
         (->
          handler
          ;; Inject dependencies
-         (wrap wrap-deps (seq (map deps (:deps resource))))
+         (wrap wrap-deps (seq (map (or deps {}) (:deps resource))))
 
          ;; Add custom request middleware
          (#(reduce (fn [a m] (m a)) % on-request))
@@ -766,11 +766,11 @@
   Use make-handler.
   "
   [resources handlers {:as    options
-                         :keys [sec-handlers, media-handlers, deps,
-                                on-missing, on-error,
-                                on-request, on-response,
-                                schemas, dev-mode]
-                         :or   {on-missing not-found}}]
+                       :keys [sec-handlers, media-handlers, deps,
+                              on-missing, on-error,
+                              on-request, on-response,
+                              schemas, dev-mode]
+                       :or   {on-missing not-found}}]
 
   {:pre [(seq resources)
          (seq handlers)
@@ -849,17 +849,17 @@
                                        on-error  from-clj  on-response
   "
   ([resources handlers options]
-     `(make-handler* ~resources
-                     (resolve-handlers ~resources ~handlers)
-                     ~options))
+   `(make-handler* ~resources
+                   (resolve-handlers ~resources ~handlers)
+                   ~options))
   ([resources {:as options :keys [handlers]}]
-     `(make-handler* ~resources
-                     (resolve-handlers ~resources ~handlers)
-                     ~options))
+   `(make-handler* ~resources
+                   (resolve-handlers ~resources ~handlers)
+                   ~options))
   ([resources]
-     `(make-handler* ~resources
-                     (resolve-handlers ~resources)
-                     {})))
+   `(make-handler* ~resources
+                   (resolve-handlers ~resources)
+                   {})))
 
 (defn add-prefix
   "This will add a base URI prefix to all resources."
