@@ -679,13 +679,16 @@
    (fn [a [ks v]]
      (when-some [x (get-in a ks)]
        (assert (nil? x)
-               (format "Routing conflict %s already defined." (apply str ks))))
+               (format "Routing conflict %s already defined."
+                       (str/join ks))))
      (assoc-in a ks v))
    {} table))
 
 (defn- make-routing-trie [table]
-  (let [table (sort-by (comp count first) table)]
-    (table->trie (map-first (comp uri->path bindings->wildcard) table))))
+  (->> table
+       (sort-by (comp count first))
+       (map-first (comp uri->path bindings->wildcard))
+       (table->trie)))
 
 (defn- find-route*
   [trie on-missing uri]
