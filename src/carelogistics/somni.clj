@@ -684,7 +684,8 @@
    {} table))
 
 (defn- make-routing-trie [table]
-  (table->trie (map-first (comp uri->path bindings->wildcard) table)))
+  (let [table (sort-by (comp count first) table)]
+    (table->trie (map-first (comp uri->path bindings->wildcard) table))))
 
 (defn- find-route*
   [trie on-missing uri]
