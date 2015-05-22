@@ -7,9 +7,9 @@
 ;;; the terms of this license.
 ;;; You must not remove this notice, or any other, from this software.
 
-(ns carelogistics.somni-test
+(ns somni-test
   (:require [clojure.test :as test :refer :all]
-            [carelogistics.somni :refer :all]
+            [somni :refer :all]
             [schema.core :as schema]))
 
 (defn OK
@@ -100,10 +100,10 @@
 (deftest wildcard-routing-tests
   (is (= ["ana" "ab"] (:body (test-handler {:uri "/ana/ab"}))))
   (is (= ["ana" "ab"] (:body (test-handler {:uri "/foo/ab/ana"}))))
-  (is (:trace-id (test-handler {:uri "foo/xyz/def"})) "maintains trace"))
+  (is (get-in (test-handler {:uri "foo/xyz/def"}) [:headers :trace-id] ) "maintains trace"))
 
 (deftest features-tests
-  (is (:trace-id (test-handler {:uri "/foo"})) "Missing trace-id")
+  (is (get-in (test-handler {:uri "/foo"}) [:headers :trace-id]) "Missing trace-id")
 
   (is (:out-mw (test-handler {:uri "/foo"})) "Response middleware failed")
 
@@ -200,7 +200,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;  Hello world example
 
-(require '[carelogistics.somni :as somni])
+(require 'somni)
 
 (def hello-handlers
   {:hello (fn [request]

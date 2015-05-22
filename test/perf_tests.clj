@@ -7,8 +7,8 @@
 ;;; the terms of this license.
 ;;; You must not remove this notice, or any other, from this software.
 
-(ns carelogistics.perf-tests
-  (:require [carelogistics.somni :as somni]
+(ns perf-tests
+  (:require [somni :as somni]
             [clojure.test :refer :all]
             [compojure.core :refer (GET routes)]
             [ring.mock.request :refer (request)]
