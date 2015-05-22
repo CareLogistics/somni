@@ -8,7 +8,7 @@
 ;;; You must not remove this notice, or any other, from this software.
 
 (ns ^{:author "Andrew Garman"}
-  carelogistics.somni
+  somni
   "
   An opinionated yet lightweight services routing library.
 
@@ -253,6 +253,25 @@
   "
   [handler deps]
   (fn [request] (apply handler request deps)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Allow somni to interact with non-ring handler functions
+
+(defn- response?
+  "
+  Determines if a fn response is a ring-response.
+  "
+  [response]
+  (and (map? response)
+       (some #{:status :headers :body} (keys response))))
+
+(defn- ->response
+  "
+  If handler returns a ring response, pass it through.  Otherwise pack its
+  result in the responses body.
+  "
+  [response]
+  (if (response? response) response {:body response}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Binding middleware
@@ -572,6 +591,10 @@
                                     (filter (set ops) r-ops)
                                     ops)})))))
 
+(defn- assoc-trace
+  [ring-map trace-id]
+  (assoc-in ring-map [:headers :trace-id] trace-id))
+
 (defn- stack-middleware
   "
   Builds a resource's request & response pipeline as documented in
@@ -591,6 +614,7 @@
         request-fn
         (->
          handler
+
          ;; Inject dependencies
          (wrap wrap-deps (seq (map (or deps {}) (:deps resource))))
 
@@ -616,6 +640,7 @@
         response-fn
         (->
          identity
+
          ;; Add custom response middleware
          (#(reduce (fn [a m] (m a)) % on-response))
          ;; Negotiation response middleware
@@ -626,9 +651,10 @@
       (let [trace-id (or trace-id (gen-trace-id))]
 
         (-> request
-            (assoc :trace-id trace-id, :dev-mode dev-mode)
+            (assoc-trace trace-id)
             (request-fn)
-            (assoc :trace-id trace-id, :dev-mode dev-mode)
+            (->response)
+            (assoc-trace trace-id)
             (response-fn))))))
 
 (defn- build-resources

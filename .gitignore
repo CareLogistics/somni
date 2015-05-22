@@ -13,3 +13,4 @@ pom.xml.asc
 /bin/
 .class*
 .project*
+.nrepl-history
