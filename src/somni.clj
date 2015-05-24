@@ -136,7 +136,7 @@
       (assoc details :cause (ex-details cause))
       details)))
 
-(defn wrap-exception-handling
+(defn wrap-uncaught-exceptions
   "
   Returns a function that takes an r (request or response).  It invokes next-fn
   with r, catches exceptions thrown by next-fn.
@@ -254,6 +254,13 @@
   [handler deps]
   (fn [request] (apply handler request deps)))
 
+(defn wrap-middleware
+  "
+  Adds a seq of middlware to a handler.
+  "
+  [handler middleware]
+  (reduce (fn [a m] (m a)) handler middleware))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Allow somni to interact with non-ring handler functions
 
@@ -265,13 +272,26 @@
   (and (map? response)
        (some #{:status :headers :body} (keys response))))
 
+(defn- ex->response
+  [ex]
+  (let [data    (ex-data ex)
+        status  (or (:status data) 400)
+        message (.getMessage ex)]
+
+    {:status  status
+     :headers data
+     :body   [message]}))
+
 (defn- ->response
   "
   If handler returns a ring response, pass it through.  Otherwise pack its
   result in the responses body.
   "
   [response]
-  (if (response? response) response {:body response}))
+  (cond
+   (response? response)           response
+   (instance? Throwable response) (ex->response response)
+   :else {:body response}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Binding middleware
@@ -321,7 +341,6 @@
              :resource (with-meta
                          (wrap-bindings resource bindings)
                          (meta resource)))
-
            details)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -365,8 +384,8 @@
          parse-mime-type
          split-mime)))
 
-;;; NOTE: accpept have no fixed ordering, so pointless to memoize
 (defn parse-accept [a]
+  ;;; NOTE: accept have no fixed ordering, so pointless to memoize
   (let [[h & t :as xs] (when (seq a) (map parse-mime (split-accept a)))]
     (cond
      t     (sort-by #(:q % "1.0") #(compare %2 %1) xs)
@@ -529,7 +548,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Resource construction
 
-(defn- ne-seq [x] (and (coll? x) (seq x) x))
+(defn- non-empty? [x] (and (coll? x) (seq x) x))
 
 (defn- wrap
   "
@@ -537,9 +556,9 @@
   "
   [handler middleware options]
   (cond
-   (true?  options) (middleware handler)
-   (ne-seq options) (middleware handler options)
-   options          (middleware handler options)
+   (true?      options) (middleware handler)
+   (non-empty? options) (middleware handler options) ;TODO: is this a relic?
+   options              (middleware handler options)
    :else handler))
 
 (defn- get-sec-fn
@@ -619,7 +638,7 @@
          (wrap wrap-deps (seq (map (or deps {}) (:deps resource))))
 
          ;; Add custom request middleware
-         (#(reduce (fn [a m] (m a)) % on-request))
+         (wrap wrap-middleware on-request)
 
          ;; Request validation middleware
          (wrap wrap-schema-validation (or (get schemas (:schema resource))
@@ -642,7 +661,8 @@
          identity
 
          ;; Add custom response middleware
-         (#(reduce (fn [a m] (m a)) % on-response))
+         (wrap wrap-middleware on-response)
+
          ;; Negotiation response middleware
          (wrap wrap-serialization mhs))]
 
@@ -655,7 +675,8 @@
             (request-fn)
             (->response)
             (assoc-trace trace-id)
-            (response-fn))))))
+            (response-fn)
+            (assoc-trace trace-id))))))
 
 (defn- build-resources
   "
@@ -820,7 +841,7 @@
                    (make-router on-missing))]
 
     (with-meta
-      (wrap-exception-handling router on-error)
+      (wrap-uncaught-exceptions router on-error)
       (meta router))))
 
 (defmacro make-handler
@@ -872,11 +893,11 @@
   | n a |      <--403  |              415          |                       | n |
   | g p |              |           <--+        <--400                      | d |
   |   t |          <--200 w/                                               | l |
-  |   o |           svc desc          <--500                               | e |
-  |   r |                                 |                                | r |
-  |     |<--------------------------------|---------<------<....<----------|   |
-  +=====+                                 |         |           |          +===+
-                                       on-error  from-clj  on-response
+  |   o |           svc desc        <--500                                 | e |
+  |   r |                               |                                  | r |
+  |     |<------------------------------|---------<------<....<--------<---|   |
+  +=====+                               |         |           |        |   +===+
+                                     on-error  from-clj on-response  ->ring
   "
   ([resources handlers options]
    `(make-handler* ~resources
