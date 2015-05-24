@@ -893,11 +893,11 @@
   | n a |      <--403  |              415          |                       | n |
   | g p |              |           <--+        <--400                      | d |
   |   t |          <--200 w/                                               | l |
-  |   o |           svc desc        <--500                                 | e |
-  |   r |                               |                                  | r |
-  |     |<------------------------------|---------<------<....<--------<---|   |
-  +=====+                               |         |           |        |   +===+
-                                     on-error  from-clj on-response  ->ring
+  |   o |           svc desc      <--500                                   | e |
+  |   r |                             |                                    | r |
+  |     |<----------------------------|---------<------<....<---------<----|   |
+  +=====+                             |         |           |         |    +===+
+                                   on-error  from-clj  on-response  ring<-
   "
   ([resources handlers options]
    `(make-handler* ~resources
