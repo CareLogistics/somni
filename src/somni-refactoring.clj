@@ -213,3 +213,12 @@
    `(make-handler* ~resources
                    (resolve-handlers ~resources)
                    {})))
+
+(defn add-prefix
+  "This will add a base URI prefix to all resources."
+  [prefix resources]
+  (for [r resources]
+    (into {} (for [[k v] r]
+               (if (= :uris k)
+                 [k (map #(str "/" prefix "/" %) v)]
+                 [k v])))))
