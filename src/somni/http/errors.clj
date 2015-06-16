@@ -30,10 +30,12 @@
   *out* or in the body of the http response.  If there is a server error
   :status set in r, it will be the :status used in the response.
   "
-  [{:as r :keys [status]} & [dev-mode]]
+  ([{:as r :keys [status]} dev-mode]
 
-  {:status (or (server-error? status) 500)
-   :body (if (or dev-mode (:dev-mode r))
-           (pp/write r :stream nil)
-           (do (pp/write r)
-               "Internal server error"))})
+   {:status (or (server-error? status) 500)
+    :body (if (or dev-mode (:dev-mode r))
+            (pp/write r :stream nil)
+            (do (pp/write r)
+                "Internal server error"))})
+
+  ([r] (server-error r nil)))

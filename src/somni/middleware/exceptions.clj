@@ -1,10 +1,9 @@
-(ns somni.middleware.exceptions)
+(ns somni.middleware.exceptions
+  (:require [somni.http.errors :refer [server-error]]))
 
 (defn ex-details
-  "
-  Creates a pretty printed string for an exception's message, stack
-  trace and cause.
-  "
+  "Recursively converts a Java Throwable to clojure map with :exception,
+  :message, :stackTrace & :cause"
   [^Throwable e]
 
   (let [details {:exception  (type e)
@@ -23,13 +22,15 @@
 
   on-error is invoked with r merged with ex-data and ex-details added as :error.
   "
-  [next-fn on-error]
+  ([next-fn on-error]
 
-  {:pre [next-fn on-error]}
+   {:pre [next-fn on-error]}
 
-  (fn [r]
-    (let [x (try (next-fn r) (catch Exception e e))]
-      (if (instance? Throwable x)
-        (on-error (assoc (merge r (ex-data x))
-                    :error (ex-details x)))
-        x))))
+   (fn [r]
+     (let [x (try (next-fn r) (catch Exception e e))]
+       (if (instance? Throwable x)
+         (on-error (assoc (merge r (ex-data x))
+                     :error (ex-details x)))
+         x))))
+
+  ([next-fn] (wrap-uncaught-exceptions next-fn server-error)))

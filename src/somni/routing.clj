@@ -61,9 +61,9 @@
           (ifn? on-missing)]}
 
    (fn [{:as request :keys [uri]}]
-     (let [r (unthunk router)
-           p (uri->path uri)
-           h (find-handler r p on-missing)]
-       (h request))))
+     (let [path    (uri->path uri)
+           router' (unthunk router)
+           handler (find-handler router' path on-missing)]
+       (handler request))))
 
   ([router] (router->handler router not-found)))

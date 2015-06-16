@@ -1,8 +1,10 @@
-(ns somni.middleware.validation)
+(ns somni.middleware.validation
+  (:require [schema.core :as s]
+            [somni.http.errors :refer [malformed-request]]))
 
 (defn wrap-schema-validation
   "
-  Returns 400 if the body of a pust, put or patch does not match the
+  Returns 400 if the body of a post, put or patch does not match the
   schema.
   "
   [handler schema]
@@ -12,5 +14,5 @@
   (fn [{:as request :keys [body request-method]}]
     (if-some [errors (and (#{:post, :put, :patch} request-method)
                           (s/check schema body))]
-      (malformed-request (assoc request :errors errors))
+      (assoc (malformed-request request) :errors errors)
       (handler request))))
