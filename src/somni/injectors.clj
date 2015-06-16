@@ -1,21 +1,24 @@
-(ns somni.injection
-  (:require [somni.misc :refer [thunk? unthunk meta']]))
+(ns somni.injectors
+  (:require [somni.misc :refer [unthunk]]))
 
-(defmacro args->deps
-  ""
+(defn var->args
   [f]
-  `(seq (first (:arglists (meta' ~f)))))
+  (:arglists (meta f)))
 
-(defmacro partial-by-name
-  [f params]
-  `(args->deps ~f))
+(defn invoke-with-map
+  [f m]
+  (let [m (reduce (fn [a [k v]] (assoc a (symbol (name k)) v)) {} m)
+        {:as m :keys [arglists]} (meta f)
+        matched (first (filter #(every? m %) arglists))
+        params (seq (map m matched))]
+    (if params
+      (eval `(~f ~@params))
+      (with-meta (fn [m2] (invoke-with-map f (merge m m2))) m))))
 
-(defn- wrap-thunked-deps
+(defn wrap-deps
   [handler deps]
-  (fn [request] (apply handler request (unthunk deps))))
-
-(defn- wrap-deps
-  [handler])
-
-(defn test-fn-A [a b c])
-(def test-data-A)
+  (fn [{:as request :keys [body headers]}]
+    ((assoc (unthunk deps)
+       :request request
+       :body    body
+       :headers headers))))

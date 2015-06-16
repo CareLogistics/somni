@@ -8,6 +8,5 @@
                  [prismatic/schema "0.3.0"]]
 
   :profiles
-  {:test {:dependencies [[compojure "1.1.9"]
-                         [ring-mock "0.1.5"]
+  {:test {:dependencies [[ring-mock "0.1.5"]
                          [criterium "0.4.3"]]}})
