@@ -1,7 +1,7 @@
 (ns somni.stacker
-  "
-  Configures middleware based upon resource definition.
-  ")
+  "Configures middleware based upon resource definition."
+  (:require [somni.misc :refer :all]
+            [clojure.pprint :as pp]))
 
 (defn- response?
   "
@@ -40,9 +40,7 @@
   (reduce (fn [a m] (m a)) handler middleware))
 
 (defn- wrap
-  "
-  Conditionally adds middleware logic based upon availability of options.
-  "
+  "Conditionally adds middleware logic based upon availability of options."
   [handler middleware options]
   (cond
    (true?      options) (middleware handler)
@@ -104,6 +102,7 @@
   [ring-map trace-id]
   (assoc-in ring-map [:headers :trace-id] trace-id))
 
+#_
 (defn- stack-middleware
   "
   Builds a resource's request & response pipeline as documented in
@@ -168,6 +167,7 @@
             (response-fn)
             (assoc-trace trace-id))))))
 
+#_
 (defn- build-resources
   "
   Collects detailed information required for construction of each resource.

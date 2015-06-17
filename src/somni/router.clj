@@ -1,4 +1,4 @@
-(ns somni.routing
+(ns somni.router
   "
   A simple routing library based upon a trie.  Supports wildcards & keyword
   wildcards.

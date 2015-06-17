@@ -1,4 +1,4 @@
-(ns somni.injectors
+(ns somni.middleware.injectors
   (:require [somni.misc :refer [unthunk]]))
 
 (defn partial-from-map

@@ -1,4 +1,4 @@
-(ns somni.mime
+(ns somni.http.mime
   (:require [clojure.string :as str])
   (:import (java.nio.charset Charset)))
 

@@ -1,5 +1,5 @@
-(ns somni.injectors-test
-  (:require [somni.injectors :refer :all]
+(ns somni.middleware.auth.injectors-test
+  (:require [somni.middleware.injectors :refer :all]
             [clojure.test :refer :all]))
 
 (defn a [foo bar baz quux] (+ foo bar baz quux))

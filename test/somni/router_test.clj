@@ -1,5 +1,5 @@
-(ns somni.routing-test
-  (:require [somni.routing :refer :all]
+(ns somni.router-test
+  (:require [somni.router :refer :all]
             [clojure.test :refer :all]))
 
 (deftest bindings->wildcard-test
