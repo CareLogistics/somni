@@ -1,7 +1,7 @@
 (ns somni.middleware.bindings
   (:require [somni.misc :refer [uri->path]]))
 
-(def ^:private bindings-rexp #"\w+|:(\w*)")
+(def ^:private bindings-rexp #"\w+|:([^\/]*)")
 
 (defn get-binding-info
   "Extracts binding information from a uri."

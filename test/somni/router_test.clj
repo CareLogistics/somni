@@ -4,7 +4,7 @@
 
 (deftest bindings->wildcard-test
   (is
-   (= (bindings->wildcard "/a/:w/x")
+   (= (bindings->wildcard "/a/:w-!-123-souffle/x")
       "/a/*/x")
    "Convert keyword path segments to wildcards"))
 
@@ -12,30 +12,30 @@
   (let [router (atom {})]
     (is
      (= (swap! router add-route '[a b c] 'A)
-        '{"a" {"b" {"c" {:somni.routing/h A}}}})
+        '{"a" {"b" {"c" {:somni.router/h A}}}})
      "Add route to empty router")
 
     (is
      (= (swap! router add-route '[a b "*" d] 'B)
-        '{"a" {"b" {"*" {"d" {:somni.routing/h B}},
-                    "c" {:somni.routing/h A}}}})
+        '{"a" {"b" {"*" {"d" {:somni.router/h B}},
+                    "c" {:somni.router/h A}}}})
      "Add route to non-empty router")
 
     (is
      (= (swap! router add-route '[a b q] "K")
-        '{"a" {"b" {"q" {:somni.routing/h "K"},
-                    "*" {"d" {:somni.routing/h B}},
-                    "c" {:somni.routing/h A}}}})
+        '{"a" {"b" {"q" {:somni.router/h "K"},
+                    "*" {"d" {:somni.router/h B}},
+                    "c" {:somni.router/h A}}}})
      "Add route over a wildcard")
 
     (is
      (= (swap! router add-routes '[[[c] C]
                                    [[c d] D]])
-        '{"c" {"d" {:somni.routing/h D},
-               :somni.routing/h C},
-          "a" {"b" {"q" {:somni.routing/h "K"},
-                    "*" {"d" {:somni.routing/h B}},
-                    "c" {:somni.routing/h A}}}})
+        '{"c" {"d" {:somni.router/h D},
+               :somni.router/h C},
+          "a" {"b" {"q" {:somni.router/h "K"},
+                    "*" {"d" {:somni.router/h B}},
+                    "c" {:somni.router/h A}}}})
      "Add routes to non-empty router")
 
     (is
@@ -44,18 +44,18 @@
      "Adding a route to a pre-existing route is not allowed")))
 
 (deftest remove-routes-test
-  (let [router '{c {d {:somni.routing/h D},
-                    :somni.routing/h C},
-                 a {b {"*" {d {:somni.routing/h B}},
-                       c {:somni.routing/h A}}}}]
+  (let [router '{c {d {:somni.router/h D},
+                    :somni.router/h C},
+                 a {b {"*" {d {:somni.router/h B}},
+                       c {:somni.router/h A}}}}]
 
     (is
      (= (remove-route router '[a b c])
-        '{c {d {:somni.routing/h D},
-             :somni.routing/h C},
-          a {b {"*" {d {:somni.routing/h B}},
+        '{c {d {:somni.router/h D},
+             :somni.router/h C},
+          a {b {"*" {d {:somni.router/h B}},
                 c {}}}})
-     "remove-route removes handler from routing path")))
+     "remove-route removes handler from router path")))
 
 (deftest find-handler-test
   (let [routes '[[["site-map"] site-map-handler]

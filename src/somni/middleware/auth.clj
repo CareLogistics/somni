@@ -51,8 +51,6 @@
 
   {:pre [(seq acls)]}
 
-  (prn acls)
-
   (fn [{:as request :keys [request-method]}]
 
     (let [allowed-roles (acls request-method)

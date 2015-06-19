@@ -9,7 +9,7 @@
 
 (defn bindings->wildcard
   [uri]
-  (str/replace uri #":\w+" "*"))
+  (str/replace uri #":[^\/]+" "*"))
 
 (defn- has-route?
   "determine if a router has an exact match for a route"

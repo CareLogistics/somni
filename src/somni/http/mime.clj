@@ -21,7 +21,7 @@
 (defn- parse-mime-params
   [[mime & [params]]]
   (reduce (fn [a [k v]] (assoc a (keyword k) v))
-          mime
+          (assoc mime :q "1.0")
           (partition 2 params)))
 
 (def ^:private default-charset (str (Charset/defaultCharset)))
@@ -40,10 +40,23 @@
          parse-mime-type
          split-mime)))
 
+(defn- glob? [x] (= "*" (name x)))
+
+(defn- count-glob [m] (count (filter (comp glob? val) m)))
+
+(def ^:private desc #(compare %2 %1))
+
+(defn- sort-mimes
+  [xs]
+  (->> xs
+       (sort-by count-glob)
+       (sort-by count desc)
+       (sort-by :q    desc)))
+
 (defn parse-accept [a]
   ;;; NOTE: accept have no fixed ordering, so pointless to memoize
   (let [[h & t :as xs] (when (seq a) (map parse-mime (split-accept a)))]
     (cond
-     t     (sort-by #(:q % "1.0") #(compare %2 %1) xs)
+     t     (sort-mimes xs)
      h     [h]
      :else [{:group "*", :media :*}])))

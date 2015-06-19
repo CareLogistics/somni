@@ -1,8 +1,7 @@
 (ns somni.misc
-  "
-  Miscellaneous functions that don't have an obvious namespace.
-  "
-  (:require [clojure.string :as str]))
+  "Miscellaneous functions that don't have an obvious namespace."
+  (:require [clojure.string :as str]
+            [clojure.edn :as edn]))
 
 (defmacro meta' [f] `(meta #'~f))
 
@@ -21,9 +20,17 @@
 
 (defn uri->path [uri] (remove empty? (str/split (or uri "") #"/")))
 
-(defn lazy->string
+(defn realize-string
   ([body encoding]
    (if (string? body) body (slurp body :encoding encoding)))
 
   ([body]
-   (lazy->string body nil)))
+   (realize-string body nil)))
+
+(defn str->map [s re]
+  (->> (str/split s re)
+       (remove empty?)
+       (partition 2)
+       (map (fn [[k v]] [(keyword k) (edn/read-string v)]))
+       (vec)
+       (into {})))

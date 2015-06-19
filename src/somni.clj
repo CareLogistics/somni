@@ -612,7 +612,9 @@
 
 (defn- assoc-trace
   [ring-map trace-id]
-  (assoc-in ring-map [:headers "trace-id"] trace-id))
+  (assoc-in ring-map [:headers "
+
+trace-id"] trace-id))
 
 (defn- stack-middleware
   "

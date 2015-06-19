@@ -31,12 +31,12 @@
   "
   ([{:as r :keys [status]} dev-mode]
 
-   {:status       (or (server-error? status) 500)
+   {:status (or (server-error? status) 500)
 
     :content-type "application/text"
 
-    :body        (if dev-mode
-                   (pp/write r :stream nil)
-                   "Internal server error")})
+    :body (if dev-mode
+            (pp/write r :stream nil)
+            "Internal server error")})
 
   ([r] (server-error r nil)))

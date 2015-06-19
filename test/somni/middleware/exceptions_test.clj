@@ -1,6 +1,7 @@
 (ns somni.middleware.exceptions-test
   (:require [somni.middleware.exceptions :refer :all]
-            [clojure.test :refer :all]))
+            [clojure.test :refer :all]
+            [somni.http.errors :refer [server-error]]))
 
 (def ^:private exceptional-handler (constantly (ex-info "Boom" {})))
 (def ^:private throwing-handler (fn [_] (throw (exceptional-handler))))
@@ -14,10 +15,12 @@
     (is (= (get-in e [:cause :message]) "Boom"))))
 
 (def ^:private weh (wrap-uncaught-exceptions exceptional-handler))
-(def ^:private wth (wrap-uncaught-exceptions throwing-handler))
+(def ^:private wth (wrap-uncaught-exceptions throwing-handler
+                                             #(server-error % :dev-mode)))
 
 (deftest wrap-uncaught-exceptions-test
-  (is (= (weh {}) {:status 500, :body "Internal server error"}))
-  (let [r (wth {:dev-mode 1})]
+  (is (= 500 (:status (weh {}))))
+  (is (= "Internal server error" (:body (weh {}))))
+  (let [r (wth {})]
     (is (= (:status r) 500))
     (is (not= (:body r) "Internal server error"))))

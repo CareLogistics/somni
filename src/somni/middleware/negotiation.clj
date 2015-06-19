@@ -1,11 +1,15 @@
-(ns somni.middleware.negotiation)
-
-(def request-methods #{:get, :put, :post, :delete})
+(ns somni.middleware.negotiation
+  (:require [somni.http.errors :refer [unsupported-method
+                                       unsupported-media
+                                       not-acceptable
+                                       server-error]]
+            [somni.http.mime :refer [parse-mime parse-accept]]
+            [somni.http.forms :refer [form-decode]]
+            [somni.misc :refer [realize-string]]
+            [clojure.edn :as edn]))
 
 (defn wrap-supported-methods
-  "
-  Returns 405 if an unsupported http method is made in the request.
-  "
+  "Returns 405 if an unsupported http method is made in the request."
   [handler ops]
 
   {:pre [handler]}
@@ -16,22 +20,51 @@
         (unsupported-method request)
         (handler request)))))
 
-(defmulti ->clj :mime-type)
-(defmulti clj-> :mime-type)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
 
-(def builtin-media-handlers
-  [{:supports  #{:octet-stream, :*}
-    :mime-type "application/octet-stream"
-    :from      identity}
+(defn- request->content-type
+  [req body]
+  (-> (or (:content-type req)
+          (get-in req [:headers "Content-Type"])
+          "application/octet-stream")
+      parse-mime
+      :media))
+
+(defmulti ->clj
+  "deserialize based upon content-type of request"
+  (fn [mime-type body] mime-type))
+
+(defmethod ->clj :edn     [_ body] (edn/read-string body))
+(defmethod ->clj :clojure [_ body] (edn/read-string body))
+(defmethod ->clj :x-www-form-urlencoded [_ body] (form-decode body))
+(defmethod ->clj :octet-stream [_ body] body)
+
+#_
+(defn deserialize
+  [{:as req :keys body}]
+  (let [body (realize-string body )]))
+
+#_ (def builtin-media-handlers
+  [
 
    {:supports  #{:x-www-form-urlencoded}
-    :mime-type "application/x-www-form-urlencoded"
-    :to        form-decode}
+    :->clj     form-decode}
 
    {:supports  #{:edn :clojure}
+    :clj->     pr-str
+
     :mime-type "application/edn"
-    :from      pr-str
-    :to        edn/read-string}])
+    :->clj     edn/read-string}])
+
+(def clj->clj edn/read-string)
+
+
+(defn request->accept
+  [request]
+  (some-> (or (get-in request [:headers "Accept"])
+              (get-in request [:headers "accept"]))
+          parse-accept))
 
 (defn- media-handler<->mime
   "
@@ -46,6 +79,7 @@
 
       (merge mime mh))))
 
+
 (defn- lookup-serializers
   "
   Returns all mime-types with associated media handlers that are acceptable.
@@ -55,6 +89,11 @@
         :let [mime (media-handler<->mime mhs mime)]
         :when (:from mime)]
     mime))
+
+
+
+
+
 
 (defn- lookup-deserializer
   "
@@ -134,7 +173,7 @@
     (cond
      body (let [mime (lookup-deserializer media-handlers content-type)
                 des  (:to mime)
-                body (body->str body (:charset mime))]
+                body (realize-string body (:charset mime))]
 
             (if-some [data (when des (des body))]
               (handler (assoc request :body data))

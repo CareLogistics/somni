@@ -1,4 +1,4 @@
-(ns somni.middleware.auth.injectors-test
+(ns somni.middleware.injectors-test
   (:require [somni.middleware.injectors :refer :all]
             [clojure.test :refer :all]))
 
@@ -30,7 +30,7 @@
                       :headers {"a" "b"},
                       :body 123}}))))
 
-(def deps {:foo 1 'bar 2 "quux" 3 :baz 4})
+
 (deftest wrap-deps-test
-  (let [a-with-deps (wrap-deps* #'a deps)]
-    (is (= 10 (a-with-deps {})))))
+  (is (= 10 ((wrap-deps* #'a {:foo 1 'bar 2})
+             {:params {"baz" 3} :identity {:quux 4}}))))
