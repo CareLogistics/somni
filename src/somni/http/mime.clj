@@ -4,18 +4,24 @@
 
 (def ^:private accept-rexp #"\s*,\s*")
 
-(defn- split-accept [a] (str/split (or a "") accept-rexp))
+(defn- split-accept
+  [a]
+  (str/split (or a "") accept-rexp))
 
 (def ^:private mime-params-rexp #"\s*\/\s*|\s*\;\s*|\s*\=\s*")
 
-(defn- split-mime   [a] (str/split (or a "") mime-params-rexp))
+(defn- split-mime
+  [a]
+  (str/split (or a "") mime-params-rexp))
 
 (def ^:private mime-suffix-rexp #"\+")
 
-(defn- parse-mime-type [[t s & params]]
-  (let [[a b] (str/split (or s "") mime-suffix-rexp)]
-    [(merge {:group t, :media (keyword a)}
-            (when b {:suffix (keyword b)}))
+(defn- parse-mime-type [[group sub & params]]
+  (let [[media suffix] (str/split (or sub "") mime-suffix-rexp)]
+    [(merge {:group group,
+             :media media
+             :mime (str group "/" media (when suffix (str "+" suffix)))}
+            (when suffix {:suffix suffix}))
      params]))
 
 (defn- parse-mime-params
@@ -24,14 +30,16 @@
           (assoc mime :q "1.0")
           (partition 2 params)))
 
-(def ^:private default-charset (str (Charset/defaultCharset)))
+(def ^:private charset-for-name
+  (memoize
+   (fn [charset]
+     (if (and charset (Charset/isSupported charset))
+       charset
+       (str (Charset/defaultCharset))))))
 
 (defn- parse-charset
-  [{:as mime
-    :keys [charset]
-    :or {charset default-charset}}]
-  (when (Charset/isSupported charset)
-    (assoc mime :charset charset)))
+  [{:as mime :keys [charset]}]
+  (assoc mime :charset (charset-for-name charset)))
 
 (def parse-mime
   (memoize                              ; adds ~9x speed up
@@ -40,7 +48,7 @@
          parse-mime-type
          split-mime)))
 
-(defn- glob? [x] (= "*" (name x)))
+(defn- glob? [x] (= "*" x))
 
 (defn- count-glob [m] (count (filter (comp glob? val) m)))
 

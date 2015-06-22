@@ -3,6 +3,12 @@
   (:require [clojure.string :as str]
             [clojure.edn :as edn]))
 
+(defn by-tag
+  "For use when dispatching on a tagged tuple"
+  [tag & _] tag)
+
+(defn has-method [multi tag] ((methods multi) tag))
+
 (defmacro meta' [f] `(meta #'~f))
 
 (defn thunk? [x]
@@ -19,13 +25,6 @@
 (defn map-first [f xs] (map (fn [[a & b]] (cons (f a) b)) xs))
 
 (defn uri->path [uri] (remove empty? (str/split (or uri "") #"/")))
-
-(defn realize-string
-  ([body encoding]
-   (if (string? body) body (slurp body :encoding encoding)))
-
-  ([body]
-   (realize-string body nil)))
 
 (defn str->map [s re]
   (->> (str/split s re)

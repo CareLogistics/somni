@@ -1,7 +1,24 @@
-(ns somni.middleware.auth
+(ns somni.middleware.access-control
   (:require [somni.http.errors :refer [not-authenticated
-                                       access-denied]]))
+                                       access-denied
+                                       unsupported-method]]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; by operation
+(defn wrap-supported-methods
+  "Returns 405 if an unsupported http method is made in the request."
+  [handler ops]
+
+  {:pre [handler]}
+
+  (let [ops (set ops)]
+    (fn [{:as request :keys [request-method]}]
+      (if-not (get ops request-method)
+        (unsupported-method request)
+        (handler request)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; authentication
 (defmulti  request->identity
   "Returns identity that should be associated with the request.
   If there is no identity, returns nil.
@@ -28,17 +45,16 @@
           handler (assoc :identity id))
       (not-authenticated request))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; authorization
 (defmulti  request->roles
   "Returns set of roles associated with a request.  If there is no user
   or the user has no roles, request->roles should return nil."
   (fn [role-provider request] role-provider))
 
-(defmethod request->roles :default
-  [_ request]
-  (get-in request [:identity :roles]))
+(defmethod request->roles :default [_ req] (get-in req [:identity :roles]))
 
-(defn- acls*
-  [acls]
+(defn- acls* [acls]
   (into {} (for [[k v] acls] [k (set (map name v))])))
 
 (defn- access-allowed?
@@ -46,7 +62,7 @@
   [allowed-roles users-roles]
   (some (comp allowed-roles name) users-roles))
 
-(defn- wrap-access-control*
+(defn- wrap-authorization*
   [handler acls role-provider]
 
   {:pre [(seq acls)]}
@@ -60,7 +76,7 @@
         (handler request)
         (access-denied request)))))
 
-(defn wrap-access-control
+(defn wrap-authorization
   "ACL based authorization middleware that uses request->roles multimethod
   to extract a users roles from request.
 
@@ -75,7 +91,7 @@
 
    (let [acls (acls* acls)]
      (if (seq acls)
-       (wrap-access-control* handler acls role-provider)
+       (wrap-authorization* handler acls role-provider)
        access-denied)))
 
-  ([handler acls] (wrap-access-control handler acls :default)))
+  ([handler acls] (wrap-authorization handler acls :default)))

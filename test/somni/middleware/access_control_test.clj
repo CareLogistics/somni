@@ -1,5 +1,5 @@
-(ns somni.middleware.auth-test
-  (:require [somni.middleware.auth :refer :all]
+(ns somni.middleware.access-control-test
+  (:require [somni.middleware.access-control :refer :all]
             [clojure.test :refer :all]))
 
 (def ^:private test-user {:user 'test, :roles '#{tester}})
@@ -28,11 +28,18 @@
 (def test-acl {:get [:tester]})
 
 (deftest wrap-access-control-test
-  (is (= 200 (:status ((wrap-access-control h test-acl) test-req)))
+  (is (= 200 (:status ((wrap-authorization h test-acl) test-req)))
       "Authorization allows access when user has role")
 
-  (is (= 403 (:status ((wrap-access-control h test-acl) {:request-method :get})))
+  (is (= 403 (:status ((wrap-authorization h test-acl) {:request-method :get})))
       "Access denied when identity is unknown")
 
-  (is (= 403 (:status ((wrap-access-control h nil) test-req)))
+  (is (= 403 (:status ((wrap-authorization h nil) test-req)))
       "Access denied when no roles assigned to resource"))
+
+(deftest wrap-supported-methods-test
+  (is (= 200 (:status ((wrap-supported-methods h [:get])
+                       test-req))))
+
+  (is (= 405 (:status ((wrap-supported-methods h [:get])
+                       {:request-method :put})))))
