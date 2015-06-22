@@ -28,13 +28,15 @@
 (def ^:const content-type-clj     "application/clojure")
 (def ^:const content-type-form    "application/x-www-form-urlencoded")
 
+(def ^:dynamic *default-mime-type* content-type-edn)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Marshalling implementations for clojure & edn
-(defmethod clj-> content-type-any [_ body] (pr-str body))
 (defmethod clj-> content-type-edn [_ body] (pr-str body))
-(defmethod ->clj content-type-edn [_ body] (edn/read-string body))
 (defmethod clj-> content-type-clj [_ body] (pr-str body))
+
 (defmethod ->clj content-type-clj [_ body] (edn/read-string body))
+(defmethod ->clj content-type-edn [_ body] (edn/read-string body))
 
 ;;; Other built-in marshallers
 (defmethod ->clj content-type-form [_ body] (form-decode body))
@@ -63,18 +65,29 @@
 
 (defn- content-type
   [request]
-  (some->> (or (:content-type request)
-               (get-in request headers-content-type)
-               content-type-default)
-           parse-mime
-           #(when (deserializable? (:mime %)) %)))
+  (when-some [parsed-content-type (some-> (or (:content-type request)
+                                              (get-in request headers-content-type)
+                                              content-type-default)
+                                          (parse-mime))]
+    (when-some [des (deserializable? (:mime parsed-content-type))]
+      [(:mime parsed-content-type)
+       (:charset parsed-content-type)
+       (partial des nil)])))
+
+(def ^:dynamic *use-default-mime-for* #{"*" "*/*" "text/*" "application/*"})
 
 (defn- accept
   [request]
-  (some->> (or (get-in request headers-accept)
-               (get-in request [:headers "accept"]))
-           parse-accept
-           (filter (comp serializable? :mime))))
+  (let [mime-types (some-> (or (get-in request headers-accept)
+                               (get-in request [:headers "accept"])
+                               *default-mime-type*)
+                           (#(when (*use-default-mime-for* %) *default-mime-type*))
+                           parse-accept)]
+
+    (first (for [mime mime-types
+                 :let [ser (serializable? (:mime mime))]
+                 :when ser]
+             [(:mime mime) (:charset mime) (partial ser nil)]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; the actual middleware
@@ -83,9 +96,8 @@
 
   (fn [{:as request :keys [body]}]
 
-    #_
-    (let [content-type (request->content-type request)
-          accepts nil]
+    (let [[   _ charset-in  des] (when body (content-type request))
+          [mime charset-out ser] (accept request)]
 
       (cond
        (and body (not des)) (unsupported-media request)
@@ -93,11 +105,11 @@
        (nil? ser) (not-acceptable request)
 
        :else (let [resp (-> request
-                            (realize-body )
+                            (realize-body charset-in)
                             (marshall-with des)
                             handler)]
-               (if (:body resp)
-                 (-> resp
-                     (marshall-with ser)
-                     (assoc :content-type out-mime))
-                 resp))))))
+
+               (-> resp
+                   (marshall-with ser)
+                   (realize-body charset-out)
+                   (set-content-type mime)))))))
