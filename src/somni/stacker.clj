@@ -1,46 +1,94 @@
 (ns somni.stacker
   "Configures middleware based upon resource definition."
   (:require [somni.misc :refer :all]
-            [clojure.pprint :as pp]))
+            [clojure.pprint :as pp]
+            [schema.core :as s]))
 
-(defn- response?
-  "
-  Determines if a fn response is a ring-response.
-  "
-  [response]
-  (and (map? response)
-       (some #{:status :headers :body} (keys response))))
+(def ops #{:get :put :post :delete})
+(def ops-schema (apply s/enum ops))
+(def roles-schema {s/Keyword [ops-schema]})
+(def resource-def-schema {:uris                     [s/Str]
+                          ops-schema                 s/Symbol
+                          (s/optional-key :doc)      s/Str
+                          (s/optional-key :security) s/Keyword
+                          (s/optional-key :ops)     [ops-schema]
+                          (s/optional-key :roles)    roles-schema})
 
-(defn- ex->response
-  [ex]
-  (let [data    (ex-data ex)
-        status  (or (:status data) 400)
-        message (.getMessage ex)]
+(def tags-schema {(s/optional-key :schema)   {s/Any s/Any}
+                  (s/optional-key :consumes) [s/Str]
+                  (s/optional-key :produces) [s/Str]
+                  s/Any s/Any})
 
-    {:status  status
-     :headers data
-     :body   [message]}))
+(def merged-tags #{:schema :consumes :produces})
+(def merged-meta #{:doc :arglists})
 
-(defn- ->response
-  "
-  If handler returns a ring response, pass it through.  Otherwise pack its
-  result in the responses body.
-  "
-  [response]
-  (cond
-   (response? response)           response
-   (instance? Throwable response) (ex->response response)
-   :else {:body response}))
+(defn describe-resource
+  [resource-def]
 
-(defn wrap-middleware
-  "
-  Adds a seq of middlware to a handler.
-  "
-  [handler middleware]
-  (reduce (fn [a m] (m a)) handler middleware))
+  ;; validate resource def
+  (s/validate resource-def-schema resource-def)
+
+  (let [handlers (for [op ops
+                       :let [handler (resolve (resource-def op))
+                             h-meta (meta handler)]
+                       :when handler]
+
+                   [op (merge
+                        (into {} (filter (comp merged-tags key) (:tag h-meta)))
+                        (into {} (filter (comp merged-meta key) h-meta))
+                        {:handler handler})])]
+
+    (reduce
+     (fn [rd [op desc]] (assoc rd op desc))
+     resource-def
+     handlers)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(defn wrap-middleware [h mws] (reduce (fn [a m] (m a)) h mws))
+
+(defn- gen-trace-id [] (java.util.UUID. (System/nanoTime) (System/nanoTime)))
 
 (defn- wrap
-  "Conditionally adds middleware logic based upon availability of options."
   [handler middleware options]
   (cond
    (true?      options) (middleware handler)
@@ -48,55 +96,7 @@
    options              (middleware handler options)
    :else handler))
 
-(defn- get-sec-fn
-  ;; TODO: convert this to multi-method with default being a reject
-  "
-  Matches the security handler to the resource.  If it cannot find a match
-  it will deny all access to the resource.
-  "
-  [sec-handlers resource]
 
-  (let [sec-req (:security resource)
-        sec-fn  (and sec-req (get sec-handlers sec-req))]
-
-    (when sec-req
-      (or sec-fn
-          (do
-             (pp/write {:error   "Missing Security Handler"
-                        :sec-fn  (:security resource)
-                        :uris    (:uris resource)
-                        :message "All access will be denied."})
-             (constantly nil))))))
-
-(defn- gen-trace-id
-  "
-  Simple, roughly ordered, fast trace id generator.
-  "
-  []
-  (java.util.UUID.
-   (System/nanoTime)
-   (* (rand-int (Integer/MAX_VALUE))
-      (rand-int (Integer/MAX_VALUE)))))
-
-(defn- self-described-handler
-  "
-  Merges the resource definition from the meta data attached to a handler
-  function.
-  "
-  [{:as resource, r-ops :ops} handler]
-
-  (let [handler-meta              (meta handler)
-        {:keys [schema ops desc]} (:tag handler-meta)
-        deps (seq (map (comp keyword name)
-                       (drop 1 (first (:arglists handler-meta)))))]
-
-    (-> resource
-        (merge (when desc   {:desc   desc}))
-        (merge (when schema {:schema schema}))
-        (merge (when deps   {:deps   deps}))
-        (merge (when ops    {:ops (if r-ops
-                                    (filter (set ops) r-ops)
-                                    ops)})))))
 
 (defn- assoc-trace
   [ring-map trace-id]
@@ -109,7 +109,7 @@
   make-handler.
   "
   [resource handler {:as    options
-                     :keys [sec-handlers, media-handlers, deps,
+                     :keys [deps,
                             on-request, on-response,
                             schemas, dev-mode]}]
 
@@ -166,31 +166,3 @@
             (assoc-trace trace-id)
             (response-fn)
             (assoc-trace trace-id))))))
-
-#_
-(defn- build-resources
-  "
-  Collects detailed information required for construction of each resource.
-
-  resources is the authoritative source for all uris, security, ops & roles
-
-  handlers is the authoritative source for schema, deps & can further
-  restrict available ops beyon definition from resources.
-
-  options contains maps that will be used by resources to lookup sec-handlers,
-  deps, on-request, on-response, on-missing & on-error handlers.  Dependencies
-  required from handlers will also be resolved through options.
-  "
-  [resources handlers options]
-
-  (for [{:as rsc, :keys [uris handler]} resources
-        :let [hfn (handlers handler)]]
-
-    ;; TODO: if we don't find a resource in handlers, resolve from callers ns
-    (do
-      (assert (ifn? hfn) (str "Handler function not defined for " rsc))
-
-      {:uris      uris
-       :resource (if (ifn? hfn)
-                    (stack-middleware rsc hfn options)
-                    server-error)})))
