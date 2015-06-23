@@ -117,3 +117,8 @@
            (wrap wrap-authorization (op (description->roles resource-desc)))
            (wrap wrap-authentication (:authentication resource-desc))
            (trace-request trace-id))))))
+
+(defn build-resources
+  [resource deps user-middlewares]
+  ;; [path op handler-fn] where path is uri + op
+  )
