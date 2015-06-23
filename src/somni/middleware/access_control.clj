@@ -54,7 +54,7 @@
 
   (fn [{:as request :keys [request-method]}]
 
-    (let [allowed-roles (acls request-method)
+    (let [allowed-roles (set (acls request-method))
           users-roles   (set (request->roles role-provider request))]
 
       (if (access-allowed? allowed-roles users-roles)

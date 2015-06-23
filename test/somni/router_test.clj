@@ -86,8 +86,8 @@
                       'page-visitor-ad-impressions))
      "Multiple globs will match specific segments")
 
-    (is (= (find-handler router :get ["site-map" "Joe" "ad-metrics"] nil)))
-    (is (= (find-handler router :get ["page" "1" "visitor" "1" "b"] nil)))
+    (is (= (find-handler router :get ["site-map" "Joe" "ad-metrics"]    nil)))
+    (is (= (find-handler router :get ["page" "1" "visitor" "1" "b"]     nil)))
     (is (= (find-handler router :get ["page" "1" "2" "visitor" "1" "b"] nil)))))
 
 (deftest router->handler-test

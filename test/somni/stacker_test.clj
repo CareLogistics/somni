@@ -1,7 +1,8 @@
 (ns somni.stacker-test
   (:require [somni.stacker :refer :all]
             [clojure.test :refer :all]
-            [schema.core :as s]))
+            [schema.core :as s]
+            [somni.middleware.access-control :refer [request->identity]]))
 
 (def +gen-report+
   "adds to acceptable media"
@@ -26,11 +27,15 @@
 
 (defn sample-deleter
   "Delete existing report template.  Report history is not deleted."
-  [report-id]
-  "deleted")
+  [report-id uid]
+  [uid 'deleted report-id])
+
+(defmethod request->identity :mock [& _] {:user "fred",
+                                          :uid 21345,
+                                          :roles [:admin]})
 
 (def sample-resource
-  {:uri ":w/:e"               ; used by router AND sets up wrap-binding
+  {:uri ":report-id/:date"               ; used by router AND sets up wrap-binding
    :doc "This doc is for the URI" ; additional docs collected from handlers
 
    ;; per handler dependencies determine by functions arglists
@@ -41,13 +46,13 @@
    :delete `sample-deleter
 
    ;; no security information added to auto-docs
-   :authentication :jwt                 ; sets up wrap-authentication
+   :authentication :mock                ; sets up wrap-authentication
    :disabled-methods [:put]             ; sets up wrap-supported-methods
    :authorization {:anonymous [:get]    ; sets up wrap-authorization
                    :admin [:get :post :delete]}})
 
 (def expected-described-resource
-  {:uri ":w/:e"
+  {:uri ":report-id/:date"
    :doc "This doc is for the URI",
 
    :get {:handler (resolve `sample-getter)
@@ -57,7 +62,7 @@
 
    :delete {:handler (resolve `sample-deleter)
             :doc "Delete existing report template.  Report history is not deleted.",
-            :arglists '([report-id])},
+            :arglists '([request])},
 
    :post {:handler (resolve `sample-putter)
           :doc "Create new report template",
@@ -66,7 +71,7 @@
           :consumes ["application/docx" "image/pdf" "application/odfx"]}
 
    :disabled-methods [:put],
-   :authentication :jwt,
+   :authentication :mock,
    :authorization {:admin [:get :post :delete],
                    :anonymous [:get]}})
 
@@ -74,6 +79,20 @@
   (is (= (describe-resource sample-resource)
          expected-described-resource)))
 
-(def expected-roles {:get [:admin :anonymous]
-                     :post [:admin]
-                     :delete [:admin]})
+(def expected-roles {:get    #{:admin
+                               :anonymous}
+                     :post   #{:admin}
+                     :delete #{:admin}})
+
+(deftest description->roles-test
+  (is (= (description->roles sample-resource)
+         expected-roles)))
+
+(def sm (stack-middleware expected-described-resource :delete {} []))
+
+(def test-req {:uri "deleted-report/today"
+               :request-method :delete
+               :headers {"Accept" "*/*"}})
+
+(deftest stack-middleware-test
+  (prn '(test this tomorrow)))

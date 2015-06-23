@@ -47,15 +47,13 @@
   "...consider implementing as delay...
   ...or as function on stream...
   ...or as future, promise or whatever works best..."
-  ([{:as req :keys [body]} encoding]
+  ([body encoding]
    (if (string? body)
-     req
-     (update-in req [:body] slurp :encoding encoding)))
+     body
+     (slurp body :encoding encoding)))
 
   ([req]
    (realize-body req nil)))
-
-(defn- marshall-with [r f] (update-in r [:body] f))
 
 (defn- set-content-type [resp mime]
   (let [mime (name mime)]
@@ -111,14 +109,19 @@
 
           (nil? ser) (not-acceptable request)
 
-          :else (let [resp (-> request
-                               (realize-body charset-in)
-                               (marshall-with des)
-                               handler)]
+          :else (let [body-in (some-> body
+                                      (realize-body charset-in)
+                                      (des))
 
-                  (-> resp
-                      (marshall-with ser)
-                      (realize-body charset-out)
-                      (set-content-type mime-out))))))))
+                      resp (handler (assoc request :body body-in))
+
+                      body-out (some-> (:body resp)
+                                       (ser)
+                                       (realize-body charset-out))]
+
+                  (if body-out
+                    (-> (assoc resp :body body-out)
+                        (set-content-type mime-out))
+                    resp)))))))
 
   ([handler] (wrap-content-negotiation handler {})))
