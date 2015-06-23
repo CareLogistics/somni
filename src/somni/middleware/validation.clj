@@ -2,7 +2,7 @@
   (:require [schema.core :as s]
             [somni.http.errors :refer [malformed-request]]))
 
-(defn wrap-schema-validation
+(defn wrap-request-validation
   "
   Returns 400 if the body of a post, put or patch does not match the
   schema.

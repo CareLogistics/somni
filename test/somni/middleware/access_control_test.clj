@@ -27,7 +27,7 @@
 
 (def test-acl {:get [:tester]})
 
-(deftest wrap-access-control-test
+(deftest wrap-authorization-test
   (is (= 200 (:status ((wrap-authorization h test-acl) test-req)))
       "Authorization allows access when user has role")
 
@@ -36,10 +36,3 @@
 
   (is (= 403 (:status ((wrap-authorization h nil) test-req)))
       "Access denied when no roles assigned to resource"))
-
-(deftest wrap-supported-methods-test
-  (is (= 200 (:status ((wrap-supported-methods h [:get])
-                       test-req))))
-
-  (is (= 405 (:status ((wrap-supported-methods h [:get])
-                       {:request-method :put})))))

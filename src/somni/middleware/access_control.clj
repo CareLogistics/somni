@@ -1,21 +1,6 @@
 (ns somni.middleware.access-control
   (:require [somni.http.errors :refer [not-authenticated
-                                       access-denied
-                                       unsupported-method]]))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; by operation
-(defn wrap-supported-methods
-  "Returns 405 if an unsupported http method is made in the request."
-  [handler ops]
-
-  {:pre [handler]}
-
-  (let [ops (set ops)]
-    (fn [{:as request :keys [request-method]}]
-      (if-not (get ops request-method)
-        (unsupported-method request)
-        (handler request)))))
+                                       access-denied]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; authentication

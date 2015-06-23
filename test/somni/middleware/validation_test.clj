@@ -6,7 +6,7 @@
 (def ^:private +schema+ {:user s/Str
                :action s/Keyword})
 
-(def ^:private h (wrap-schema-validation identity +schema+))
+(def ^:private h (wrap-request-validation identity +schema+))
 
 (def ^:private req1 {:request-method :put
                      :body {:user "bob", :action :rock-on}})

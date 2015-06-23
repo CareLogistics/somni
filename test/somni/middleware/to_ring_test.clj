@@ -3,5 +3,5 @@
             [clojure.test :refer :all]))
 
 (deftest wrap-->ring-test
-  (is (= 200 (:status ((wrap-->ring identity) "foo"))))
-  (is (= 201 (:status ((wrap-->ring (fn [_] {:status 201})) {})))))
+  (is (= 200 (:status ((wrap-response-as-ring identity) "foo"))))
+  (is (= 201 (:status ((wrap-response-as-ring (fn [_] {:status 201})) {})))))

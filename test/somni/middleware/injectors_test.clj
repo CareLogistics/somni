@@ -20,17 +20,23 @@
                            :headers {"a" "b"},
                            :params {:visit-id "x"}
                            :identity {:u 1 :r [:x :y]}})
-           {:visit-id "x",
-            :u 1,
-            :r [:x :y],
-            :headers {"a" "b"},
-            :body 123,
+           {:r [:x :y],
             :request {:identity {:r [:x :y], :u 1},
                       :params {:visit-id "x"},
                       :headers {"a" "b"},
-                      :body 123}}))))
-
+                      :body 123},
+            :payload 123,
+            :params {:visit-id "x"},
+            :visit-id "x",
+            :headers {"a" "b"},
+            :req {:identity {:r [:x :y], :u 1},
+                  :params {:visit-id "x"},
+                  :headers {"a" "b"},
+                  :body 123},
+            :body 123,
+            :data 123,
+            :u 1}))))
 
 (deftest wrap-deps-test
-  (is (= 10 ((wrap-deps* #'a {:foo 1 'bar 2})
+  (is (= 10 ((inject-deps-into-request #'a {:foo 1 'bar 2})
              {:params {"baz" 3} :identity {:quux 4}}))))

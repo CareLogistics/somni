@@ -17,31 +17,44 @@
       (fn []   (eval `(~f-var ~@params)))
       (fn [m2] (partial-from-map f-var (merge m-args m2))))))
 
-(defn- view-only [k] (fn [m] (when-some [v (m k)] {k v})))
+(defn- extract-as
+  ([k as] (fn [m] (when-some [v (m k)] {as v})))
+  ([k] (extract-as k k)))
 
-(def ^:dynamic *dep-generators* {:body     (view-only :body)
-                                 :headers  (view-only :headers)
-                                 :identity :identity
-                                 :params   :params})
+(def ^:dynamic *dep-generators*
+  "
+  Functions that extract portions of a ring request to be injected as deps
+  that will be injected by name into a wrap-deps function.
+
+  Default extraction/injections are:
+  * request      - request argument
+  * body         - arguments named body, data & payload
+  * headers      - header argument
+  * query-params - by query-param's name
+  * params       - by parameter's name
+  * identity     - by identity parameter's name; e.g., 'user' & 'role'
+  "
+  [(fn [r] {:request r, :req r, :r r})
+   (extract-as :body)
+   (extract-as :body :data)
+   (extract-as :body :payload)
+   (extract-as :headers)
+   (extract-as :params)
+   (extract-as :query-params)
+   :query-params
+   :params
+   :identity])
 
 (defn- request->deps
   [request]
-  (reduce (fn [a [k f]] (merge a (f request)))
-          {:request request}
+  (reduce (fn [a f] (merge a (f request)))
+          {}
           *dep-generators*))
 
-(defn wrap-deps*
+(defn inject-deps-into-request
   "..."
-  ([handler deps dep-gen]
-   (with-redefs [*dep-generators* dep-gen]
-     (fn [request]
-       ((partial-from-map handler
-                          (merge (unthunk deps)
-                                 (request->deps request)))))))
-
-  ([handler deps] (wrap-deps* handler deps *dep-generators*)))
-
-(defmacro wrap-deps
-  "..."
-  ([handler deps dep-gen] `(wrap-deps* #'~handler ~deps ~dep-gen))
-  ([handler deps]         `(wrap-deps* #'~handler ~deps)))
+  [handler deps]
+  (fn [request]
+    ((partial-from-map handler
+                       (merge (unthunk deps)
+                              (request->deps request))))))

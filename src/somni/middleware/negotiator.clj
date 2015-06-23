@@ -92,24 +92,33 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; the actual middleware
 (defn wrap-content-negotiation
-  [handler]
+  ([handler {:keys [consumes produces]}]
 
-  (fn [{:as request :keys [body]}]
+   (let [consumes (set consumes)
+         produces (set produces)]
 
-    (let [[   _ charset-in  des] (when body (content-type request))
-          [mime charset-out ser] (accept request)]
+     (fn [{:as request :keys [body]}]
 
-      (cond
-       (and body (not des)) (unsupported-media request)
+       (let [[mime-in  charset-in  des] (when body (content-type request))
+             [mime-out charset-out ser] (accept request)
 
-       (nil? ser) (not-acceptable request)
+             ;; Allow handlers to override serialization & deserialization
+             des (if (consumes mime-in)  identity des)
+             ser (if (produces mime-out) identity ser)]
 
-       :else (let [resp (-> request
-                            (realize-body charset-in)
-                            (marshall-with des)
-                            handler)]
+         (cond
+          (and body (nil? des)) (unsupported-media request)
 
-               (-> resp
-                   (marshall-with ser)
-                   (realize-body charset-out)
-                   (set-content-type mime)))))))
+          (nil? ser) (not-acceptable request)
+
+          :else (let [resp (-> request
+                               (realize-body charset-in)
+                               (marshall-with des)
+                               handler)]
+
+                  (-> resp
+                      (marshall-with ser)
+                      (realize-body charset-out)
+                      (set-content-type mime-out))))))))
+
+  ([handler] (wrap-content-negotiation handler {})))

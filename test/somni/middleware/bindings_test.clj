@@ -4,7 +4,8 @@
 
 (deftest wrap-bindings-test
 
-  (let [handler (wrap-bindings identity "/user/:user/:page/:sub-page")]
+  (let [handler (attach-bindings-to-request-params
+                 identity "/user/:user/:page/:sub-page")]
 
     (is (= (get-in (handler {:uri "/user/bob/profile/contacts"})
                    [:params :sub-page])

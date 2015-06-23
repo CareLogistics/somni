@@ -7,12 +7,12 @@
 
 (defn- ->ring
   [response]
-  (if (or (ring? response)
-          (instance? Throwable response))
-    response
-    {:status 200, :body response}))
+  (cond
+   (ring? response) response
+   (instance? Throwable response) (throw response)
+   :else {:status 200, :body response}))
 
-(defn wrap-->ring
+(defn wrap-response-as-ring
   "If handler returns a ring response or an exception, pass it through.
   Otherwise pack result in a ring response."
   [handler]

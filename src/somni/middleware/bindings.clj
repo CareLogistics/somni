@@ -21,7 +21,7 @@
                bindings)]
       (handler req))))
 
-(defn wrap-bindings
+(defn attach-bindings-to-request-params
   "
   Takes a handler and a URI route to handler.  If that URI contains
   keywords, a request will bind those segments of a request URI to

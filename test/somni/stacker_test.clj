@@ -29,27 +29,25 @@
   [report-id]
   "deleted")
 
-(def sample-resource-def
-  {:uris ["w/e"                         ; used by router AND
-          ":w/:e"]                      ; sets up wrap-binding
-
+(def sample-resource
+  {:uri ":w/:e"               ; used by router AND sets up wrap-binding
    :doc "This doc is for the URI" ; additional docs collected from handlers
 
+   ;; per handler dependencies determine by functions arglists
    ;; below is also used by router
    :get    `sample-getter           ; combine these to generate
    :put    `sample-putter           ; maximum possible supported-methods
    :post   `sample-putter           ; for this URI
    :delete `sample-deleter
 
-   ;; per handler dependencies determine by functions arglists
    ;; no security information added to auto-docs
-   :security :jwt                       ; sets up wrap-authentication
-   :ops [:get :post :put]               ; sets up wrap-supported-methods
-   :roles {:anonymous [:get]            ; sets up wrap-authorization
-           :admin [:get :post :delete]}})
+   :authentication :jwt                 ; sets up wrap-authentication
+   :disabled-methods [:put]             ; sets up wrap-supported-methods
+   :authorization {:anonymous [:get]    ; sets up wrap-authorization
+                   :admin [:get :post :delete]}})
 
 (def expected-described-resource
-  {:uris ["w/e" ":w/:e"]
+  {:uri ":w/:e"
    :doc "This doc is for the URI",
 
    :get {:handler (resolve `sample-getter)
@@ -61,18 +59,21 @@
             :doc "Delete existing report template.  Report history is not deleted.",
             :arglists '([report-id])},
 
-   :put {:handler (resolve `sample-putter)
-         :doc "Create new report template",
-         :arglists '([body]),
-         :schema {:foo :baz},
-         :consumes ["application/docx" "image/pdf" "application/odfx"]}
-
    :post {:handler (resolve `sample-putter)
           :doc "Create new report template",
           :arglists '([body]),
           :schema {:foo :baz},
           :consumes ["application/docx" "image/pdf" "application/odfx"]}
 
-   :security :jwt,
-   :ops [:get :post :put],
-   :roles {:admin [:get :post :delete], :anonymous [:get]}})
+   :disabled-methods [:put],
+   :authentication :jwt,
+   :authorization {:admin [:get :post :delete],
+                   :anonymous [:get]}})
+
+(deftest describe-resource-test
+  (is (= (describe-resource sample-resource)
+         expected-described-resource)))
+
+(def expected-roles {:get [:admin :anonymous]
+                     :post [:admin]
+                     :delete [:admin]})

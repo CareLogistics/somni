@@ -59,10 +59,10 @@
 
 (deftest find-handler-test
   (let [routes '[[["site-map"] site-map-handler]
-                      [["*"] index-page]
-                      [["site-map" "seo" "details"] seo-details]
-                      [["site-map" :user "c"] users-index]
-                      [["page" "*" "visitor" "*" "ad-metrics"] page-visitor-ad-impressions]]
+                 [["*"] index-page]
+                 [["site-map" "seo" "details"] seo-details]
+                 [["site-map" :user "c"] users-index]
+                 [["page" "*" "visitor" "*" "ad-metrics"] page-visitor-ad-impressions]]
         router (add-routes {} routes)]
 
     (is
