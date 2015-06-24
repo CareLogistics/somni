@@ -98,7 +98,8 @@
                       (wrap-middlewares user-middlewares)
                       (wrap wrap-request-validation (get-in resource-desc [op :schema]))
                       (wrap-content-negotiation (resource-desc op))
-                      (wrap wrap-authorization (filter #(= op (key %)) (description->roles resource-desc)))
+                      (wrap wrap-authorization (filter #(= op (key %))
+                                                       (description->roles resource-desc)))
                       (wrap wrap-authentication (:authentication resource-desc)))]
 
       ^{:handler-meta h-meta,

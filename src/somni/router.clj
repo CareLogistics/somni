@@ -5,7 +5,8 @@
   "
   (:require [clojure.string :as str]
             [somni.misc :refer :all]
-            [somni.http.errors :refer [not-found]]))
+            [somni.http.errors :refer [not-found
+                                       unsupported-method]]))
 
 (defn bindings->wildcard
   [uri]
@@ -39,21 +40,27 @@
 (defn find-handler
   "fast search for best possible match of a given path.
   returns handler for route or nil."
-  ([router op [h & path-remaining] default]
+  [router op path]
 
-   {:pre [(keyword? op)]}
+  {:pre [(keyword? op)]}
 
-   (let [exact-match (get router h)
-         wild-match  (when-not exact-match (get router "*"))
-         next-branch (or exact-match wild-match)
-         handler     (or (op next-branch) (:any next-branch))
-         default'    (if wild-match handler default)]
+  (loop [router     router
+         [h & path] path
+         fall-back  nil]
 
-     (if (and path-remaining next-branch)
-       (recur next-branch op path-remaining default')
-       (or handler default'))))
+    (let [matched   (get router h)
 
-  ([router op path] (find-handler router op path nil)))
+          fall-back (when-not matched (or (get router "*")
+                                          fall-back))
+          router    (or matched
+                        fall-back)
+          handler   (or (op   router)
+                        (:any router))]
+
+      (cond
+       (and path router) (recur router path fall-back)
+       (nil? path)       (or handler   :no-such-op)
+       (nil? router)     (or fall-back :no-such-path)))))
 
 (defn router->handler
   "converts a router to a ring handler."
@@ -64,11 +71,12 @@
 
    (fn [{:as request :keys [uri request-method]}]
      (let [path    (uri->path uri)
-           router' (unthunk router)
-           handler (find-handler router'
-                                 request-method
-                                 path
-                                 on-missing)]
-       (handler request))))
+           router  (unthunk router)
+           handler (find-handler router request-method path)]
+
+       (condp = handler
+         :no-such-op   (unsupported-method request)
+         :no-such-path (on-missing request)
+                       (handler request)))))
 
   ([router] (router->handler router not-found)))
