@@ -1,6 +1,7 @@
 (ns somni.middleware.access-control
   (:require [somni.http.errors :refer [not-authenticated
-                                       access-denied]]))
+                                       access-denied]]
+            [somni.misc :refer [by-tag]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; authentication
@@ -9,7 +10,7 @@
   If there is no identity, returns nil.
 
   *anonymous* returns an example identity for anonymous requests."
-  (fn [auth-provider request] auth-provider))
+  by-tag)
 
 (defmethod request->identity :default [& _] nil)
 
@@ -35,7 +36,7 @@
 (defmulti  request->roles
   "Returns set of roles associated with a request.  If there is no user
   or the user has no roles, request->roles should return nil."
-  (fn [role-provider request] role-provider))
+  by-tag)
 
 (defmethod request->roles :default [_ req] (get-in req [:identity :roles]))
 

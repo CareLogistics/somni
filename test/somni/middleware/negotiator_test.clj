@@ -14,9 +14,8 @@
 
 (deftest private-tests
   (let [realize-body #'somni.middleware.negotiator/realize-body]
-    (is (= "body" (:body (realize-body {:body "body"}))))
-    (is (= "body" (:body (realize-body {:body (.getBytes "body")}
-                                       "UTF-8")))))
+    (is (= "body" (realize-body "body")))
+    (is (= "body" (realize-body (.getBytes "body") "UTF-8"))))
 
   (let [set-content-type #'somni.middleware.negotiator/set-content-type]
     (is (:content-type (set-content-type {} "application/edn")))
