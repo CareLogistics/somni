@@ -27,8 +27,10 @@
 
 (defn sample-deleter
   "Delete existing report template.  Report history is not deleted."
-  [report-id uid]
-  [uid 'deleted report-id])
+  [user report-id date]
+  (if date
+    [:delete-report report-id date [:user user]]
+    [:delete-report-template report-id [:user user]]))
 
 (defmethod request->identity :mock [& _] {:user "fred",
                                           :uid 21345,
@@ -62,7 +64,7 @@
 
    :delete {:handler (resolve `sample-deleter)
             :doc "Delete existing report template.  Report history is not deleted.",
-            :arglists '([request])},
+            :arglists '([user report-id date])},
 
    :post {:handler (resolve `sample-putter)
           :doc "Create new report template",
@@ -90,9 +92,13 @@
 
 (def sm (stack-middleware expected-described-resource :delete {} []))
 
-(def test-req {:uri "deleted-report/today"
+(def test-req {:uri "wolf-parade/today"
                :request-method :delete
                :headers {"Accept" "*/*"}})
 
 (deftest stack-middleware-test
-  (prn '(test this tomorrow)))
+  (is (= (:body (sm test-req))
+         "[:delete-report \"wolf-parade\" \"today\" [:user \"fred\"]]"))
+
+  (is (= (:body (sm (assoc test-req :uri "matzah")))
+         "[:delete-report-template \"matzah\" [:user \"fred\"]]")))

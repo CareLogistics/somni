@@ -33,3 +33,11 @@
        (map (fn [[k v]] [(keyword k) (edn/read-string v)]))
        (vec)
        (into {})))
+
+(defn desc [a b] (compare b a))
+
+(defn flip [f] (fn [& args] (apply f (reverse args))))
+
+(defn map-init
+  ([f ks] (reduce #(assoc %1 %2 (f %2)) {} ks))
+  ([ks] (map-init (constantly nil) ks)))

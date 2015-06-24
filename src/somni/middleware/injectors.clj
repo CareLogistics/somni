@@ -1,9 +1,18 @@
 (ns somni.middleware.injectors
-  (:require [somni.misc :refer [unthunk]]))
+  (:require [somni.misc :refer [unthunk desc flip map-init]]))
 
 (defn- names->symbols
   [m]
   (reduce (fn [a [k v]] (assoc a (symbol (name k)) v)) {} m))
+
+(defn- best-match
+  [arglists m-args]
+  (->> (map #(filter m-args %) arglists)
+       (zipmap arglists)
+       (vec)
+       (sort-by (comp count first))
+       (sort-by (comp count second) desc)
+       (ffirst)))
 
 (defn- partial-from-map
   [f-var m-args]
@@ -13,9 +22,12 @@
         matched  (first (filter #(every? m-args %) arglists))
         params   (seq (map m-args matched))]
 
-    (if params
-      (fn []   (eval `(~f-var ~@params)))
-      (fn [m2] (partial-from-map f-var (merge m-args m2))))))
+    (fn
+      ([m2] (partial-from-map f-var (merge m-args m2)))
+
+      ([] (let [params (or params
+                           (map m-args (best-match arglists m-args)))]
+            (eval `(~f-var ~@params)))))))
 
 (defn- extract-as
   ([k as] (fn [m] (when-some [v (m k)] {as v})))

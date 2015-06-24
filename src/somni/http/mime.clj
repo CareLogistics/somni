@@ -1,5 +1,6 @@
 (ns somni.http.mime
-  (:require [clojure.string :as str])
+  (:require [clojure.string :as str]
+            [somni.misc :refer [desc]])
   (:import (java.nio.charset Charset)))
 
 (def ^:private accept-rexp #"\s*,\s*")
@@ -51,8 +52,6 @@
 (defn- glob? [x] (= "*" x))
 
 (defn- count-glob [m] (count (filter (comp glob? val) m)))
-
-(def ^:private desc #(compare %2 %1))
 
 (defn- sort-mimes
   [xs]
