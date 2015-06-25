@@ -41,3 +41,5 @@
 (defn map-init
   ([f ks] (reduce #(assoc %1 %2 (f %2)) {} ks))
   ([ks] (map-init (constantly nil) ks)))
+
+(defn ->map [col] (reduce (fn [a [k v]] (assoc a k v)) {} col))

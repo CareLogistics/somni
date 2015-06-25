@@ -15,7 +15,7 @@
     (is (= 10 (@f)))))
 
 (deftest request->deps-test
-  (let [request->deps #'somni.middleware.injectors/request->deps]
+  (let [request->deps #'somni.middleware.injectors/generate-deps]
     (is (= (request->deps {:body 123,
                            :headers {"a" "b"},
                            :params {:visit-id "x"}
