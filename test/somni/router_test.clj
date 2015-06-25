@@ -11,26 +11,26 @@
 (deftest router-definition-test
   (let [router (atom {})]
     (is
-     (= (swap! router add-route :get '[a b c] 'A)
+     (= (swap! router add-route :get "a/b/c" 'A)
         '{"a" {"b" {"c" {:get A}}}})
      "Add route to empty router")
 
     (is
-     (= (swap! router add-route :get '[a b "*" d] 'B)
+     (= (swap! router add-route :get "a/b/:kw/d" 'B)
         '{"a" {"b" {"*" {"d" {:get B}},
                     "c" {:get A}}}})
      "Add route to non-empty router")
 
     (is
-     (= (swap! router add-route :get '[a b q] "K")
+     (= (swap! router add-route :get "a/b/q" "K")
         '{"a" {"b" {"q" {:get "K"},
                     "*" {"d" {:get B}},
                     "c" {:get A}}}})
      "Add route over a wildcard")
 
     (is
-     (= (swap! router add-routes '[[:get [c] C]
-                                   [:get [c d] D]])
+     (= (swap! router add-routes '[[:get "c" C]
+                                   [:get "c/d" D]])
         '{"c" {"d" {:get D},
                :get C},
           "a" {"b" {"q" {:get "K"},
@@ -40,22 +40,18 @@
 
     (is
      (thrown? clojure.lang.ExceptionInfo
-              (add-route @router :get '[a b c] 'AB))
-     "Adding a route to a pre-existing route is not allowed")))
-
-(deftest remove-routes-test
-  (let [router '{c {d {:get D},
-                    :get C},
-                 a {b {"*" {d {:get B}},
-                       c {:get A}}}}]
+              (add-route @router :get "a/b/c" 'AB))
+     "Adding a route to a pre-existing route is not allowed")
 
     (is
-     (= (remove-route router :get '[a b c])
-        '{c {d {:get D},
-             :get C},
-          a {b {"*" {d {:get B}},
-                c {}}}})
-     "remove-route removes handler from router path")))
+     (= (swap! router remove-route :get "a/b/c")
+        '{"c" {"d" {:get D},
+              :get C},
+         "a" {"b" {"q"
+                   {:get "K"},
+                   "*" {"d" {:get B}},
+                   "c" {}}}})
+     "Remove removes a route")))
 
 (deftest find-handler-test
   (let [routes '[[:get ["site-map"] site-map-handler]

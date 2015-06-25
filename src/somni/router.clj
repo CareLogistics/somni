@@ -17,10 +17,15 @@
   [router op path]
   (op (get-in router path)))
 
+(defn- ->path [p]
+  (cond
+   (string? p) (->path (uri->path p))
+   (coll?   p) (map bindings->wildcard p)))
+
 (defn add-route
   "add a new route handler to a router"
   ([router op path handler]
-   (let [path (map bindings->wildcard path)]
+   (let [path (->path path)]
      (if-some [existing (has-route? router op path)]
        (throw (ex-info "Routing conflict" {:existing existing}))
        (assoc-in router (concat path [op]) handler))))
@@ -35,7 +40,7 @@
 (defn remove-route
   "remove a route handler from a router"
   [router op path]
-  (update-in router path dissoc op))
+  (update-in router (->path path) dissoc op))
 
 (defn find-handler
   "fast search for best possible match of a given path.

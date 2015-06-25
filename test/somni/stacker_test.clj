@@ -42,55 +42,48 @@
 
    ;; per handler dependencies determine by functions arglists
    ;; below is also used by router
-   :get    `sample-getter           ; combine these to generate
-   :put    `sample-putter           ; maximum possible supported-methods
-   :post   `sample-putter           ; for this URI
-   :delete `sample-deleter
+   :get    #'sample-getter           ; combine these to generate
+   :put    #'sample-putter           ; maximum possible supported-methods
+   :post   #'sample-putter           ; for this URI
+   :delete #'sample-deleter
 
    ;; no security information added to auto-docs
    :authentication :mock                ; sets up wrap-authentication
    :disabled-methods [:put]             ; sets up wrap-supported-methods
-   :authorization {:anonymous [:get]    ; sets up wrap-authorization
-                   :admin [:get :post :delete]}})
+   :authorization {:get #{:admin :anonymous}    ; sets up wrap-authorization
+                   :post #{:admin}
+                   :delete #{:admin}}})
 
 (def expected-described-resource
   {:uri ":report-id/:date"
-   :doc "This doc is for the URI",
+   :doc "This doc is for the URI"
 
-   :get {:handler (resolve `sample-getter)
-         :doc "Generates report for date",
-         :arglists '([report-id date]),
-         :produces ["image/png" "image/svg" "image/pdf"]},
-
-   :delete {:handler (resolve `sample-deleter)
-            :doc "Delete existing report template.  Report history is not deleted.",
-            :arglists '([user report-id date])},
-
-   :post {:handler (resolve `sample-putter)
-          :doc "Create new report template",
-          :arglists '([body]),
-          :schema {:foo :baz},
+   :post {:handler #'somni.stacker-test/sample-putter
+          :doc "Create new report template"
+          :arglists '([body])
+          :schema {:foo :baz}
           :consumes ["application/docx" "image/pdf" "application/odfx"]}
 
-   :disabled-methods [:put],
-   :authentication :mock,
-   :authorization {:admin [:get :post :delete],
-                   :anonymous [:get]}})
+   :get {:handler #'somni.stacker-test/sample-getter
+         :doc "Generates report for date"
+         :arglists '([report-id date])
+         :produces ["image/png" "image/svg" "image/pdf"]}
+
+   :delete {:handler #'somni.stacker-test/sample-deleter
+            :doc "Delete existing report template.  Report history is not deleted."
+            :arglists '([user report-id date])}
+
+   :authentication :mock
+   :disabled-methods [:put]
+   :authorization {:get #{:admin :anonymous}
+                   :post #{:admin}
+                   :delete #{:admin}}})
 
 (deftest describe-resource-test
-  (is (= (describe-resource sample-resource)
+  (is (= (#'somni.stacker/describe-resource sample-resource)
          expected-described-resource)))
 
-(def expected-roles {:get    #{:admin
-                               :anonymous}
-                     :post   #{:admin}
-                     :delete #{:admin}})
-
-(deftest description->roles-test
-  (is (= (description->roles sample-resource)
-         expected-roles)))
-
-(def sm (stack-middleware expected-described-resource :delete {} []))
+(def sm (#'somni.stacker/stack-middleware expected-described-resource :delete {} []))
 
 (def test-req {:uri "wolf-parade/today"
                :request-method :delete

@@ -40,25 +40,15 @@
 
 (defmethod request->roles :default [_ req] (get-in req [:identity :roles]))
 
-(defn- acls* [acls]
-  (into {} (for [[k v] acls] [k (set (map name v))])))
-
-(defn- access-allowed?
-  "Tests if there's an intersection"
-  [allowed-roles users-roles]
-  (some (comp allowed-roles name) users-roles))
-
 (defn- wrap-authorization*
   [handler acls role-provider]
 
-  {:pre [(seq acls)]}
+  {:pre [(seq acls)
+         (set? acls)]}
 
-  (fn [{:as request :keys [request-method]}]
-
-    (let [allowed-roles (set (acls request-method))
-          users-roles   (set (request->roles role-provider request))]
-
-      (if (access-allowed? allowed-roles users-roles)
+  (fn [{:as request :keys [request-method uri]}]
+    (let [users-roles (request->roles role-provider request)]
+      (if (some acls users-roles)
         (handler request)
         (access-denied request)))))
 
@@ -66,8 +56,7 @@
   "ACL based authorization middleware that uses request->roles multimethod
   to extract a users roles from request.
 
-  acls is a map from operation to valid roles, e.g.:
-    {:get [roles that are valid], :put [other roles]}
+  acls is a set of roles that are allow access to this handler
 
   When no acls are provided for the handler, returns to access-denied for all
   requests."
@@ -75,7 +64,7 @@
 
    {:pre [(ifn? handler)]}
 
-   (let [acls (acls* acls)]
+   (let [acls (set (map (comp keyword name) acls))]
      (if (seq acls)
        (wrap-authorization* handler acls role-provider)
        access-denied)))

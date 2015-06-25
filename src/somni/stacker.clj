@@ -11,16 +11,16 @@
             [somni.middleware.bindings :refer [attach-bindings-to-request-params]]
             [somni.middleware.to-ring :refer [wrap-response-as-ring]]))
 
-(def ops #{:get :put :post :delete})
+(def ops #{:get :put :post :delete :any})
 (def ops-schema (apply s/enum ops))
-(def authorization-schema {s/Keyword [ops-schema]})
+(def authorization-schema {ops-schema #{s/Keyword}})
 (def resource-schema
-  {:uri                                 s/Str
-   ops-schema                           s/Symbol
-   (s/optional-key :doc)                s/Str
-   (s/optional-key :authentication)     s/Keyword
+  {:uri                                s/Str
+   ops-schema                          s/Any
+   (s/optional-key :doc)               s/Str
+   (s/optional-key :authentication)    s/Keyword
    (s/optional-key :disabled-methods) [ops-schema]
-   (s/optional-key :authorization)      authorization-schema})
+   (s/optional-key :authorization)     authorization-schema})
 
 (def tags-schema
   {(s/optional-key :schema)   {s/Any s/Any}
@@ -32,14 +32,14 @@
 (def merged-meta #{:doc :arglists})
 (def exclude-from-docs #{:disabled-methods :authentication :authorization})
 
-(defn describe-resource
+(defn- describe-resource
   [resource]
 
   ;; validate resource def
   (s/validate resource-schema resource)
 
   (let [handlers (for [op ops
-                       :let [handler (resolve (resource op))
+                       :let [handler (resource op)
                              h-meta (meta handler)]
                        :when handler
                        :when (not ((set (:disabled-methods resource)) op))]
@@ -54,31 +54,28 @@
      (apply dissoc resource ops)
      handlers)))
 
-(defn description->roles
-  [{:keys [authorization]}]
-  (reduce
-   (fn [a [op role]] (update-in a [op] (fnil conj #{}) role))
-   {}
-   (for [[role ops] authorization, op ops] [op role])))
-
 (defn- gen-trace-id [] (java.util.UUID. (System/nanoTime) (System/nanoTime)))
 
 (def ^:dynamic ^String *somni-trace-id* "Somni-Trace-Id")
 
-(defn- assoc-trace [r trace-id] (assoc-in r [:headers *somni-trace-id*] trace-id))
+(defn- assoc-trace
+  [r trace-id]
+  (assoc-in r [:headers *somni-trace-id*] trace-id))
 
-(defn wrap
+(defn- wrap
   ([handler middleware options]
-   (cond
-    (non-empty? options) (middleware handler options)
-    options              (middleware handler options)
-    :else handler))
+   (if (or (non-empty? options)
+           options)
+     (middleware handler options)
+     handler))
+
   ([handler middleware] (wrap handler middleware true)))
 
-(defn wrap-middlewares [handler user-middlewares]
+(defn- wrap-middlewares
+  [handler user-middlewares]
   (reduce wrap handler user-middlewares))
 
-(defn stack-middleware
+(defn- stack-middleware
   [resource-desc op deps user-middlewares]
 
   {:pre [resource-desc
@@ -98,8 +95,7 @@
                       (wrap-middlewares user-middlewares)
                       (wrap wrap-request-validation (get-in resource-desc [op :schema]))
                       (wrap-content-negotiation (resource-desc op))
-                      (wrap wrap-authorization (filter #(= op (key %))
-                                                       (description->roles resource-desc)))
+                      (wrap wrap-authorization ((:authorization resource-desc) op))
                       (wrap wrap-authentication (:authentication resource-desc)))]
 
       ^{:handler-meta h-meta,

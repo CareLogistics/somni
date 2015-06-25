@@ -2,7 +2,7 @@
   (:require [somni.middleware.access-control :refer :all]
             [clojure.test :refer :all]))
 
-(def ^:private test-user {:user 'test, :roles '#{admin}})
+(def ^:private test-user {:user 'test, :roles [:admin]})
 
 (defmethod request->identity :test [& _] test-user)
 
@@ -25,7 +25,7 @@
 (def test-req {:request-method :get
                :identity test-user})
 
-(def test-acl {:get [:admin]})
+(def test-acl [:admin])
 
 (deftest wrap-authorization-test
   (is (= 200 (:status ((wrap-authorization h test-acl) test-req)))
