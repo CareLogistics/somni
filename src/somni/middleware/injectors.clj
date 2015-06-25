@@ -57,7 +57,7 @@
 
 (defn- generate-deps [r] (reduce #(merge %1 (%2 r)) {} *dep-generators*))
 
-(defn inject-deps-into-request
+(defn inject-deps-into-handler
   "
   Injects depenendencies into a handler function, based upon deps provided
   as well as dependencies generated from the request.

@@ -38,7 +38,7 @@
             :u 1}))))
 
 (deftest wrap-deps-test
-  (is (= 10 ((inject-deps-into-request #'a {:foo 1 'bar 2})
+  (is (= 10 ((inject-deps-into-handler #'a {:foo 1 'bar 2})
              {:params {"baz" 3} :identity {:quux 4}}))))
 
 (defn b

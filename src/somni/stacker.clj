@@ -3,7 +3,7 @@
   (:require [somni.misc :refer :all]
             [clojure.pprint :as pp]
             [schema.core :as s]
-            [somni.middleware.injectors :refer [inject-deps-into-request]]
+            [somni.middleware.injectors :refer [inject-deps-into-handler]]
             [somni.middleware.validation :refer [wrap-request-validation]]
             [somni.middleware.access-control :refer :all]
             [somni.middleware.auto-doc :refer [wrap-options]]
@@ -92,7 +92,7 @@
     (let [h-meta (meta handler)
 
           handler (-> handler
-                      (inject-deps-into-request deps)
+                      (inject-deps-into-handler deps)
                       (attach-bindings-to-request-params (:uri resource-desc))
                       (wrap-response-as-ring)
                       (wrap-middlewares user-middlewares)
