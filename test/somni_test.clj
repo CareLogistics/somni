@@ -4,25 +4,26 @@
             [somni.middleware.access-control :refer [request->identity]]
             [somni :refer :all]))
 
-(defn hello [name] (if name (str "Hello " name) "Hello from Somni"))
+(defn hello [name db]
+  (if name (db "Hello " name) "Hello from Somni"))
 
 (def +new-user+ {:schema {:username s/Str}})
 
 (defn ^+new-user+ new-user
   "Creates a new user with uid"
   ([uid body identity db]
-   (db :delete {:username (:username body), :uid uid, :created-by identity}))
+   (db :new uid :username (:username body) :by identity))
 
   ([body identity db]
-   (new-user (java.util.UUID/randomUUID) body identity)))
+   (new-user (java.util.UUID/randomUUID) body identity db)))
 
 (defn delete-user
   [uid identity db]
-  (db :delete uid " deleted by " identity))
+  (db :delete uid :by identity))
 
 (defn get-user
   [uid identity db]
-  (db :get uid " read by " identity))
+  (db :get uid :by identity))
 
 (defmethod request->identity :trusting [_ request] (:identity request))
 
@@ -51,3 +52,56 @@
     :post  #'new-user
     :authentication :trusting
     :authorization {:post #{:admin}}}])
+
+(deftest somni-tests
+  (let [somni-handler (build sample-resources {:db str})]
+
+    (is (= "\"Hello Philip J. Fry\""
+           (:body (somni-handler {:uri "hello"
+                                  :request-method :get
+                                  :params {:name "Philip J. Fry"}}))
+           (:body (somni-handler {:uri "hello/Philip J. Fry"
+                                  :request-method :get})))
+        "Basic handler test")
+
+    (is (= 401
+           (:status (somni-handler {:uri "user", :request-method :post})))
+        "Authentication failure test")
+
+    (is (= 403
+           (:status (somni-handler {:uri "user",
+                                    :request-method :post
+                                    :identity {:user "pete",}})))
+        "Authorization failure test")
+
+    (is (= 400
+           (:status (somni-handler {:uri "user",
+                                    :request-method :post
+                                    :identity {:user "pete", :roles [:admin]}})))
+        "Validation failure test")
+
+    (is (= 415
+           (:status (somni-handler {:uri "user",
+                                    :request-method :post
+                                    :identity {:user "pete", :roles [:admin]}
+                                    :content-type "application/xml"
+                                    :body "<username>john</username>"})))
+        "Unsupported media type failure test")
+
+    (is (= 406
+           (:status (somni-handler {:uri "user",
+                                    :request-method :post
+                                    :identity {:user "pete", :roles [:admin]}
+                                    :content-type "application/edn"
+                                    :body "{:username \"john\"}"
+                                    :headers {"Accept" "application/json"}})))
+        "Not acceptable failure test")
+
+    (is (= 200
+           (:status (somni-handler {:uri "user",
+                                    :request-method :post
+                                    :identity {:user "pete", :roles [:admin]}
+                                    :content-type "application/edn"
+                                    :body "{:username \"john\"}"
+                                    :headers {"Accept" "application/edn"}})))
+        "Everything working test")))

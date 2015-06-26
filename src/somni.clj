@@ -7,8 +7,7 @@
 ;;; the terms of this license.
 ;;; You must not remove this notice, or any other, from this software.
 
-(ns ^{:author "Andrew Garman"}
-  somni
+(ns somni
   (:require [schema.core :as s]
             [somni.http.errors :refer [server-error
                                        not-found]]
@@ -26,7 +25,7 @@
 
 (defn build
   [resources deps &
-   {:keys [user-middlewares
+   {:keys [user-middleware
            on-missing
            on-error
            uri-prefix]
@@ -35,14 +34,11 @@
 
   (s/validate somni-schema resources)
 
-  (let [resources       (add-prefix resources uri-prefix)
-        stacked-resources (mapcat stacker/build-resources resources)
-        router          (router/add-routes {} stacked-resources)
-        handler         (router/router->handler router)]
+  (let [resources (add-prefix resources uri-prefix)
+        stack-fn #(stacker/stack % deps user-middleware)
+        stacked   (mapcat stack-fn resources)
+        router    (router/add-routes {} stacked)
+        handler   (router/router->handler router)]
 
-    (with-meta
-      (-> handler
-          (wrap-uncaught-exceptions on-error))
-      {:resources resources
-       :stacked-resources stacked-resources
-       :router router})))
+    (-> handler
+        (wrap-uncaught-exceptions on-error))))

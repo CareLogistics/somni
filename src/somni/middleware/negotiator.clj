@@ -72,14 +72,20 @@
        (:charset parsed-content-type)
        (partial des nil)])))
 
-(def ^:dynamic *use-default-mime-for* #{"*" "*/*" "text/*" "application/*"})
+(def ^:dynamic *wildcard-mime-types* #{"*" "*/*" "text/*" "application/*"})
+
+(defn- wildcards->default-mime-type
+  [accept-header]
+  (if (*wildcard-mime-types* accept-header)
+    *default-mime-type*
+    accept-header))
 
 (defn- accept
   [request]
   (let [mime-types (some-> (or (get-in request headers-accept)
                                (get-in request [:headers "accept"])
                                *default-mime-type*)
-                           (#(when (*use-default-mime-for* %) *default-mime-type*))
+                           wildcards->default-mime-type
                            parse-accept)]
 
     (first (for [mime mime-types

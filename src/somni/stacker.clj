@@ -95,14 +95,9 @@
                       (wrap-middlewares user-middlewares)
                       (wrap wrap-request-validation (get-in resource-desc [op :schema]))
                       (wrap-content-negotiation (resource-desc op))
-                      (wrap wrap-authorization ((:authorization resource-desc) op))
+                      (wrap wrap-authorization (get (:authorization resource-desc) op))
                       (wrap wrap-authentication (:authentication resource-desc)))]
 
-      ^{:handler-meta h-meta,
-        :request-method op,
-        :resource-description resource-desc
-        :dependencies deps
-        :user-middleware user-middlewares}
       (fn [request]
         (let [trace-id (or (get-in request [:headers *somni-trace-id*])
                            (gen-trace-id))]
@@ -110,8 +105,8 @@
           (-> request (assoc-trace trace-id)
               handler (assoc-trace trace-id)))))))
 
-(defn build-resources
-  ([resource deps user-middlewares]
+(defn stack
+  ([resource deps user-middleware]
    ;; [op path handaaaaler-fn] where path is uri + op
    (let [resource-desc (describe-resource resource)]
 
@@ -119,7 +114,7 @@
            :when (op resource-desc)]
        [op
         (:uri resource-desc)
-        (with-meta (stack-middleware resource-desc op deps user-middlewares)
+        (with-meta (stack-middleware resource-desc op deps user-middleware)
           (apply dissoc resource-desc (disj ops op)))])))
 
-  ([resource] (build-resources resource {} [])))
+  ([resource] (stack resource {} [])))
