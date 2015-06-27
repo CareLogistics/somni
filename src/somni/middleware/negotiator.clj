@@ -3,7 +3,7 @@
             [somni.http.forms :refer [form-decode]]
             [clojure.edn :as edn]
             [somni.http.mime :refer [parse-mime parse-accept]]
-            [somni.misc :refer [by-tag has-method]]))
+            [somni.misc :refer [by-tag]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; marshalling interface
@@ -15,8 +15,8 @@
   "serialize based upon content-type chosen from accept header"
   by-tag)
 
-(def deserializable? (partial has-method ->clj))
-(def serializable?   (partial has-method clj->))
+(def deserializable? (partial get-method ->clj))
+(def serializable?   (partial get-method clj->))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; string constants

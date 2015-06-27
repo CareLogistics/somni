@@ -7,8 +7,6 @@
   "For use when dispatching on a tagged tuple"
   [tag & _] tag)
 
-(defn has-method [multi tag] ((methods multi) tag))
-
 (defmacro meta' [f] `(meta #'~f))
 
 (defn thunk? [x]
