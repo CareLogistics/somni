@@ -62,59 +62,56 @@
   [r trace-id]
   (assoc-in r [:headers *somni-trace-id*] trace-id))
 
-(defn- wrap
-  ([handler middleware options]
-   (if (or (non-empty? options)
-           options)
-     (middleware handler options)
-     handler))
+(defn- wrap-middleware
+  [handler user-middleware]
+  (reduce #(%2 %1) handler user-middleware))
 
-  ([handler middleware] (wrap handler middleware true)))
+(defn wrap-trace
+  [handler]
+  (fn [request]
+     (let [trace-id (or (get-in request [:headers *somni-trace-id*])
+                         (gen-trace-id))]
+        (-> request (assoc-trace trace-id)
+            handler (assoc-trace trace-id)))))
 
-(defn- wrap-middlewares
-  [handler user-middlewares]
-  (reduce wrap handler user-middlewares))
+(defn- config-stacker
+  [resource-desc op deps user-middleware]
+  {:handler (get-in resource-desc [op :handler])
+   :uri     (get-in resource-desc [:uri])
+   :op       op
+   :mw       user-middleware
+   :schema  (get-in resource-desc [op :schema])
+   :media   (get-in resource-desc [op])
+   :deps    deps
+   :auth    (get-in resource-desc [:authentication])
+   :acls    (get-in resource-desc [:authorization op])})
 
 (defn- stack-middleware
-  [resource-desc op deps user-middlewares]
+  [{:keys [handler deps uri mw schema media auth acls]}]
 
-  {:pre [resource-desc
-         (keyword? op)
-         (ops op)
-         (or (nil? deps)
-             (map? deps))]}
+  {:pre [handler uri]}
 
-  (when-let [handler (get-in resource-desc [op :handler])]
+  (cond-> handler
+          :always      (inject-deps-into-handler deps)
+          :always      (attach-bindings-to-request-params uri)
+          :always      (wrap-response-as-ring)
+          (seq mw)     (wrap-middleware mw)
+          (seq schema) (wrap-request-validation schema)
+          :always      (wrap-content-negotiation media)
+          (seq acls)   (wrap-authorization acls)
+          auth         (wrap-authentication auth deps)
+          :always      (wrap-trace)))
 
-    (let [h-meta (meta handler)
-
-          handler (-> handler
-                      (inject-deps-into-handler deps)
-                      (attach-bindings-to-request-params (:uri resource-desc))
-                      (wrap-response-as-ring)
-                      (wrap-middlewares user-middlewares)
-                      (wrap wrap-request-validation (get-in resource-desc [op :schema]))
-                      (wrap-content-negotiation (resource-desc op))
-                      (wrap wrap-authorization (get (:authorization resource-desc) op))
-                      (wrap wrap-authentication (:authentication resource-desc)))]
-
-      (fn [request]
-        (let [trace-id (or (get-in request [:headers *somni-trace-id*])
-                           (gen-trace-id))]
-
-          (-> request (assoc-trace trace-id)
-              handler (assoc-trace trace-id)))))))
+(def ^:private configure-handler (comp stack-middleware config-stacker))
 
 (defn stack
   ([resource deps user-middleware]
    ;; [op path handaaaaler-fn] where path is uri + op
    (let [resource-desc (describe-resource resource)]
 
-     (for [op ops
-           :when (op resource-desc)]
+     (for [op ops :when (op resource-desc)]
        [op
         (:uri resource-desc)
-        (with-meta (stack-middleware resource-desc op deps user-middleware)
-          (apply dissoc resource-desc (disj ops op)))])))
+        (configure-handler resource-desc op deps user-middleware)])))
 
   ([resource] (stack resource {} [])))

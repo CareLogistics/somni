@@ -16,11 +16,7 @@
       "Authenticated requests retain identity through request & response")
 
   (is (= 401 (:status ((wrap-authentication h :ssl) {})))
-      "Unknown auth-types produce not-authenticated")
-
-  (is (= (*anonymous* {})
-         (:identity ((wrap-authentication identity :none) {})))
-      ":none authentication produces *anonymous* identity"))
+      "Unknown auth-types produce not-authenticated"))
 
 (def test-req {:request-method :get
                :identity test-user})

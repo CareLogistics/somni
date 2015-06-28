@@ -58,7 +58,7 @@
 (defn- set-content-type [resp mime]
   (let [mime (name mime)]
     (-> resp
-        (assoc :content-type mime)
+        #_ (assoc :content-type mime)
         (assoc-in headers-content-type mime))))
 
 (defn- content-type

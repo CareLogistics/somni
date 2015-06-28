@@ -83,7 +83,7 @@
   (is (= (#'somni.stacker/describe-resource sample-resource)
          expected-described-resource)))
 
-(def sm (#'somni.stacker/stack-middleware expected-described-resource :delete {} []))
+(def sm (#'somni.stacker/configure-handler expected-described-resource :delete {} []))
 
 (def test-req {:uri "wolf-parade/today"
                :request-method :delete

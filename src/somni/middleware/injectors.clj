@@ -51,6 +51,7 @@
    (extract-as :headers)
    (extract-as :params)
    (extract-as :query-params)
+   (extract-as :identity)
    :query-params
    :params
    :identity])

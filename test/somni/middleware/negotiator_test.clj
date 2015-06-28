@@ -18,7 +18,6 @@
     (is (= "body" (realize-body (.getBytes "body") "UTF-8"))))
 
   (let [set-content-type #'somni.middleware.negotiator/set-content-type]
-    (is (:content-type (set-content-type {} "application/edn")))
     (is (get-in (set-content-type {} "application/edn")
                 [:headers "Content-Type"]))))
 
@@ -41,5 +40,5 @@
   (is (= "{:result 10}" (:body (wrapped-th test-req)))
       "Correct response returned")
 
-  (is (= "application/edn" (:content-type (wrapped-th test-req)))
+  (is (= "application/edn" (get-in (wrapped-th test-req) [:headers "Content-Type"]))
       "Content-Type set by middleware"))
