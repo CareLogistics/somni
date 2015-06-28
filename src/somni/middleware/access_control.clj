@@ -19,7 +19,7 @@
 
    (let [authenticate (if-some [m ((methods request->identity) auth-provider)]
                         (partial m auth-provider)
-                        (get deps auth-provider))]
+                        (get deps auth-provider (constantly nil)))]
 
      (fn [request]
        (if-some [id (authenticate request)]
