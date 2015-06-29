@@ -29,7 +29,7 @@
            on-missing
            on-error
            uri-prefix]
-    :or {on-error   server-error
+    :or {on-error   #(server-error % true)
          on-missing not-found}}]
 
   (s/validate somni-schema resources)

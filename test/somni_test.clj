@@ -2,10 +2,14 @@
   (:require [clojure.test :refer :all]
             [schema.core :as s]
             [somni.middleware.access-control :refer [request->identity]]
-            [somni :refer :all]))
+            [somni :refer :all]
+            [immutant.web :as web]))
 
-(defn hello [name db]
-  (if name (db "Hello " name) "Hello from Somni"))
+(defn hello [name body db]
+  (cond
+   body body
+   name (db "Hello " name)
+   :else "Hello from Somni"))
 
 (def +new-user+ {:schema {:username s/Str}})
 
@@ -84,7 +88,8 @@
            (:status (somni-handler {:uri "user",
                                     :request-method :post
                                     :identity {:user "pete", :roles [:admin]}
-                                    :content-type "application/xml"
+                                    :headers {"content-type" "application/xml"
+                                              "content-length" 25}
                                     :body "<username>john</username>"})))
         "Unsupported media type failure test")
 
@@ -103,5 +108,6 @@
                                     :identity {:user "pete", :roles [:admin]}
                                     :body "{:username \"john\"}"
                                     :headers {"accept" "application/edn"
-                                              "content-type" "application/edn"}})))
+                                              "content-type" "application/edn"
+                                              "content-length" 18 }})))
         "Everything working test")))

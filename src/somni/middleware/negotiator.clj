@@ -3,7 +3,10 @@
             [somni.http.forms :refer [form-decode]]
             [clojure.edn :as edn]
             [somni.http.mime :refer [parse-mime parse-accept]]
-            [somni.misc :refer [by-tag get-header]]))
+            [somni.misc :refer [by-tag get-header]]
+            [ring.util.request :as req]
+            [ring.util.response :as resp]
+            [clojure.pprint :refer [pprint]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; marshalling interface
@@ -27,7 +30,7 @@
 (def ^:const content-type-form    "application/x-www-form-urlencoded")
 
 (def ^:dynamic *default-mime-type* content-type-edn)
-(defn set-default-mime-type
+(defn set-default-mime-type!
   [mime-type]
   (when ((methods clj->) mime-type)
     (alter-var-root #'*default-mime-type* (fn [_] mime-type))))
@@ -46,23 +49,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; functions that deal with ring request
 (defn- realize-body
-  "...consider implementing as delay...
-  ...or as function on stream...
-  ...or as future, promise or whatever works best..."
-  ([body encoding]
-   (if (string? body)
-     body
-     (slurp body :encoding encoding)))
+  [body encoding]
+  (if (string? body)
+    body
+    (slurp body :encoding encoding)))
 
-  ([req]
-   (realize-body req nil)))
-
-(defn- set-content-type [resp mime]
-  (let [mime (name mime)]
-    (-> resp
-        (assoc-in [:headers "Content-Type"] mime))))
-
-(defn- content-type
+(defn- select-deserializer
   [request]
   (when-some [parsed-content-type (parse-mime
                                    (get-header request
@@ -81,7 +73,7 @@
     (assoc mime-type :mime *default-mime-type*)
     mime-type))
 
-(defn- accept
+(defn- select-serializer
   [request]
   (let [mime-types (some->> (get-header request "Accept" *default-mime-type*)
                             (parse-accept)
@@ -100,33 +92,33 @@
    (let [consumes (set consumes)
          produces (set produces)]
 
-     (fn [{:as request :keys [body]}]
+     (fn [request]
 
-       (let [[mime-in  charset-in  des] (when body (content-type request))
-             [mime-out charset-out ser] (accept request)
+       (let [content-length (req/content-length request)
+             [mime-in  charset-in  des] (select-deserializer request)
+             [mime-out charset-out ser] (select-serializer   request)
 
              ;; Allow handlers to override serialization & deserialization
              des (if (consumes mime-in)  identity des)
              ser (if (produces mime-out) identity ser)]
 
          (cond
-          (and body (nil? des)) (unsupported-media request)
+          (and content-length
+               (> content-length 0)
+               (nil? des)) (unsupported-media request)
 
           (nil? ser) (not-acceptable request)
 
-          :else (let [body-in (some-> body
-                                      (realize-body charset-in)
-                                      (des))
+          :else (let [body-in (when content-length
+                                (-> (:body request)
+                                    (realize-body charset-in)
+                                    (des)))
 
-                      resp (handler (assoc request :body body-in))
+                      resp (handler (assoc request :body body-in))]
 
-                      body-out (some-> (:body resp)
-                                       (ser)
-                                       (realize-body charset-out))]
-
-                  (if body-out
-                    (-> (assoc resp :body body-out)
-                        (set-content-type mime-out))
+                  (if-some [body-out (:body resp)]
+                    (-> (assoc resp :body (ser body-out))
+                        (resp/content-type mime-out))
                     resp)))))))
 
   ([handler] (wrap-content-negotiation handler {})))

@@ -12,25 +12,18 @@
   (is (= (->clj "application/edn" "{a 1 b 2}")
          '{a 1 b 2})))
 
-(deftest private-tests
-  (let [realize-body #'somni.middleware.negotiator/realize-body]
-    (is (= "body" (realize-body "body")))
-    (is (= "body" (realize-body (.getBytes "body") "UTF-8"))))
-
-  (let [set-content-type #'somni.middleware.negotiator/set-content-type]
-    (is (get-in (set-content-type {} "application/edn")
-                [:headers "Content-Type"]))))
-
 (def test-req {:body "[1 2 3 4]"
                :headers {"Accept" "*/*"
-                         "content-type" "application/edn"}})
+                         "content-type" "application/edn"
+                         "content-length" 9}})
 
 (defn test-handler [{:keys [body]}] {:body {:result (apply + body)}})
 
 (def wrapped-th (wrap-content-negotiation test-handler))
 
 (deftest wrap-content-negotiation-test
-  (is (= 415 (:status (wrapped-th {:body "[a b c d]"})))
+  (is (= 415 (:status (wrapped-th {:body "[a b c d]"
+                                   :headers {"content-length" 9}})))
       "Unsupported media type for deserialization")
 
   (is (= 406 (:status (wrapped-th {:body "[a b c d]",
