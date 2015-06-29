@@ -6,5 +6,4 @@
 
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [prismatic/schema "0.4.3"]
-                 [ring/ring-core "1.3.2"]
-                 [org.immutant/immutant "2.0.2"]])
+                 [ring/ring-core "1.3.2"]])

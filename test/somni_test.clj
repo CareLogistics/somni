@@ -2,8 +2,7 @@
   (:require [clojure.test :refer :all]
             [schema.core :as s]
             [somni.middleware.access-control :refer [request->identity]]
-            [somni :refer :all]
-            [immutant.web :as web]))
+            [somni :refer :all]))
 
 (defn hello [name body db]
   (cond
