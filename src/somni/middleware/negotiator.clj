@@ -27,6 +27,10 @@
 (def ^:const content-type-form    "application/x-www-form-urlencoded")
 
 (def ^:dynamic *default-mime-type* content-type-edn)
+(defn set-default-mime-type
+  [mime-type]
+  (when ((methods clj->) mime-type)
+    (alter-var-root #'*default-mime-type* (fn [_] mime-type))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Marshalling implementations for clojure & edn
@@ -72,16 +76,16 @@
 (def ^:dynamic *wildcard-mime-types* #{"*" "*/*" "text/*" "application/*"})
 
 (defn- wildcards->default-mime-type
-  [accept-header]
-  (if (*wildcard-mime-types* accept-header)
-    *default-mime-type*
-    accept-header))
+  [{:as mime-type :keys [mime]}]
+  (if (*wildcard-mime-types* mime)
+    (assoc mime-type :mime *default-mime-type*)
+    mime-type))
 
 (defn- accept
   [request]
-  (let [mime-types (-> (get-header request "Accept" *default-mime-type*)
-                       wildcards->default-mime-type
-                       parse-accept)]
+  (let [mime-types (some->> (get-header request "Accept" *default-mime-type*)
+                            (parse-accept)
+                            (map wildcards->default-mime-type))]
 
     (first (for [mime mime-types
                  :let [ser (serializable? (:mime mime))]

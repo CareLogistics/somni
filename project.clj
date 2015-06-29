@@ -1,4 +1,4 @@
-(defproject somni "1.0.0-RC3"
+(defproject somni "1.0.0-RC4"
   :description "A lightweight library for quickly creating ring-based services"
   :url "https://github.com/CareLogistics/somni"
   :license {:name "Eclipse Public License 1.0"
