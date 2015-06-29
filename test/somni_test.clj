@@ -92,16 +92,16 @@
            (:status (somni-handler {:uri "user",
                                     :request-method :post
                                     :identity {:user "pete", :roles [:admin]}
-                                    :content-type "application/edn"
                                     :body "{:username \"john\"}"
-                                    :headers {"Accept" "application/json"}})))
+                                    :headers {"accept" "application/json"
+                                              "content-type" "application/edn"}})))
         "Not acceptable failure test")
 
     (is (= 200
            (:status (somni-handler {:uri "user",
                                     :request-method :post
                                     :identity {:user "pete", :roles [:admin]}
-                                    :content-type "application/edn"
                                     :body "{:username \"john\"}"
-                                    :headers {"Accept" "application/edn"}})))
+                                    :headers {"accept" "application/edn"
+                                              "content-type" "application/edn"}})))
         "Everything working test")))

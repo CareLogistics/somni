@@ -41,3 +41,11 @@
   ([ks] (map-init (constantly nil) ks)))
 
 (defn ->map [col] (reduce (fn [a [k v]] (assoc a k v)) {} col))
+
+(defn get-header
+  ([request header default]
+   (or (get-in request [:headers header])
+       (get-in request [:headers (str/lower-case header)])
+       default))
+  ([request header]
+   (get-header request header nil)))

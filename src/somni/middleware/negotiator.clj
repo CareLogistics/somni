@@ -3,7 +3,7 @@
             [somni.http.forms :refer [form-decode]]
             [clojure.edn :as edn]
             [somni.http.mime :refer [parse-mime parse-accept]]
-            [somni.misc :refer [by-tag]]))
+            [somni.misc :refer [by-tag get-header]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; marshalling interface
@@ -20,8 +20,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; string constants
-(def ^:const headers-content-type [:headers "Content-Type"])
-(def ^:const headers-accept       [:headers "Accept"])
 (def ^:const content-type-default "application/octet-stream")
 (def ^:const content-type-any     "*/*")
 (def ^:const content-type-edn     "application/edn")
@@ -58,15 +56,14 @@
 (defn- set-content-type [resp mime]
   (let [mime (name mime)]
     (-> resp
-        #_ (assoc :content-type mime)
-        (assoc-in headers-content-type mime))))
+        (assoc-in [:headers "Content-Type"] mime))))
 
 (defn- content-type
   [request]
-  (when-some [parsed-content-type (some-> (or (:content-type request)
-                                              (get-in request headers-content-type)
-                                              content-type-default)
-                                          (parse-mime))]
+  (when-some [parsed-content-type (parse-mime
+                                   (get-header request
+                                               "Content-Type"
+                                               content-type-default))]
     (when-some [des (deserializable? (:mime parsed-content-type))]
       [(:mime parsed-content-type)
        (:charset parsed-content-type)
@@ -82,11 +79,9 @@
 
 (defn- accept
   [request]
-  (let [mime-types (some-> (or (get-in request headers-accept)
-                               (get-in request [:headers "accept"])
-                               *default-mime-type*)
-                           wildcards->default-mime-type
-                           parse-accept)]
+  (let [mime-types (-> (get-header request "Accept" *default-mime-type*)
+                       wildcards->default-mime-type
+                       parse-accept)]
 
     (first (for [mime mime-types
                  :let [ser (serializable? (:mime mime))]

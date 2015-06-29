@@ -17,9 +17,9 @@
           (or (get-method request->identity auth-provider)
               (get deps auth-provider))]}
 
-   (let [authenticate (if-some [m ((methods request->identity) auth-provider)]
-                        (partial m auth-provider)
-                        (get deps auth-provider (constantly nil)))]
+   (let [authenticate (or (some-> ((methods request->identity) auth-provider)
+                                  (partial auth-provider))
+                          (get deps auth-provider (constantly nil)))]
 
      (fn [request]
        (if-some [id (authenticate request)]
