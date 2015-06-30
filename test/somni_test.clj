@@ -59,7 +59,7 @@
 (deftest somni-tests
   (let [somni-handler (build sample-resources {:db str})]
 
-    (is (= "\"Hello Philip J. Fry\""
+    (is (= "Hello Philip J. Fry"
            (:body (somni-handler {:uri "hello"
                                   :request-method :get
                                   :params {:name "Philip J. Fry"}}))
@@ -97,7 +97,7 @@
                                     :request-method :post
                                     :identity {:user "pete", :roles [:admin]}
                                     :body "{:username \"john\"}"
-                                    :headers {"accept" "application/json"
+                                    :headers {"accept" "application/hal+yaml"
                                               "content-type" "application/edn"}})))
         "Not acceptable failure test")
 

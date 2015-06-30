@@ -2,37 +2,31 @@
   (:require [somni.middleware.negotiator :refer :all]
             [clojure.test :refer :all]))
 
-(deftest built-in-marshalling-test
-  (is (= (clj-> *default-mime-type* [:a 1 :b 2])
-         "[:a 1 :b 2]"))
-
-  (is (= (->clj "application/x-www-form-urlencoded" "a=1&b=2")
-         {:a 1, :b 2}))
-
-  (is (= (->clj "application/edn" "{a 1 b 2}")
-         '{a 1 b 2})))
-
 (def test-req {:body "[1 2 3 4]"
-               :headers {"Accept" "*/*"
+               :headers {"accept" "*/*"
                          "content-type" "application/edn"
-                         "content-length" 9}})
+                         "content-length" "9"}})
 
 (defn test-handler [{:keys [body]}] {:body {:result (apply + body)}})
 
-(def wrapped-th (wrap-content-negotiation test-handler))
+(def wrapped-th (wrap-negotiator test-handler))
 
 (deftest wrap-content-negotiation-test
-  (is (= 415 (:status (wrapped-th {:body "[a b c d]"
-                                   :headers {"content-length" 9}})))
+  (is (= (:status (wrapped-th {:body "[a b c d]"
+                               :headers {"content-length" 9}}))
+         415)
       "Unsupported media type for deserialization")
 
-  (is (= 406 (:status (wrapped-th {:body "[a b c d]",
-                                   :headers {"Accept" "no/way"
-                                             "content-type" "application/edn"}})))
+  (is (= (:status (wrapped-th {:body "[a b c d]",
+                               :headers {"accept" "no/way"
+                                         "content-type" "application/edn"}}))
+         406)
       "Unacceptable response type for serialization")
 
-  (is (= "{:result 10}" (:body (wrapped-th test-req)))
+  (is (= (:body (wrapped-th test-req))
+         "{:result 10}")
       "Correct response returned")
 
-  (is (= "application/edn" (get-in (wrapped-th test-req) [:headers "Content-Type"]))
+  (is (= (get-in (wrapped-th test-req) [:headers "Content-Type"])
+         "application/edn;charset=UTF-8")
       "Content-Type set by middleware"))

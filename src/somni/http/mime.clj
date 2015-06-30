@@ -45,20 +45,24 @@
 
 (defn- split-mime [a] (str/split (or a "") mime-params-rexp))
 
-(def parse-mime
+(def ^:private accept-rexp #"\s*,\s*")
+
+(defn- split-accept [a] (str/split (or a "") accept-rexp))
+
+(def representation
   (memoize
    (comp parse-charset
          parse-mime-params
          parse-media-type
          split-mime)))
 
-(def ^:private accept-rexp #"\s*,\s*")
+(defn accept
+  [request]
+  (let [accept-hdr     (get-in request [:headers "accept"] "*/*")
+        [h & t :as xs] (map representation (split-accept accept-hdr))]
+    (if t (sort-mimes xs) [h])))
 
-(defn- split-accept [a] (str/split (or a "") accept-rexp))
-
-(defn parse-accept [a]
-  (let [[h & t :as xs] (when (seq a) (map parse-mime (split-accept a)))]
-    (cond
-     t     (sort-mimes xs)
-     h     [h]
-     :else [{:group "*", :media :*}])))
+(defn content-type
+  [request]
+  (representation (get-in request [:headers "content-type"]
+                          "application/octet-stream")))

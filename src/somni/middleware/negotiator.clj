@@ -1,124 +1,107 @@
 (ns somni.middleware.negotiator
-  (:require [somni.http.errors :refer :all]
+  (:require [somni.http.errors :refer [not-acceptable unsupported-media]]
             [somni.http.forms :refer [form-decode]]
-            [clojure.edn :as edn]
-            [somni.http.mime :refer [parse-mime parse-accept]]
+            [somni.http.mime :refer :all]
             [somni.misc :refer [by-tag get-header]]
-            [ring.util.request :as req]
-            [ring.util.response :as resp]
-            [clojure.pprint :refer [pprint]]))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; marshalling interface
-(defmulti ->clj
-  "deserialize based upon content-type of request"
-  by-tag)
-
-(defmulti clj->
-  "serialize based upon content-type chosen from accept header"
-  by-tag)
-
-(def deserializable? (partial get-method ->clj))
-(def serializable?   (partial get-method clj->))
+            [clojure.edn :as edn]
+            [liberator.representation :refer :all]
+            [ring.util.request :refer [body-string]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; string constants
-(def ^:const content-type-default "application/octet-stream")
-(def ^:const content-type-any     "*/*")
-(def ^:const content-type-edn     "application/edn")
-(def ^:const content-type-clj     "application/clojure")
-(def ^:const content-type-form    "application/x-www-form-urlencoded")
-
-(def ^:dynamic *default-mime-type* content-type-edn)
-(defn set-default-mime-type!
-  [mime-type]
-  (when ((methods clj->) mime-type)
-    (alter-var-root #'*default-mime-type* (fn [_] mime-type))))
+(def ^:const app-edn "application/edn")
+(def ^:const app-clj "application/clojure")
+(def ^:const www-form "application/x-www-form-urlencoded")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Marshalling implementations for clojure & edn
-(defmethod clj-> content-type-edn [_ body] (pr-str body))
-(defmethod clj-> content-type-clj [_ body] (pr-str body))
+;;; deserialization
+(defmulti ->clj
+  "Select a stream parser based upon the media-type defined by the request's
+  content-type."
+  (fn [repr body] (:media-type repr)))
 
-(defmethod ->clj content-type-clj [_ body] (edn/read-string body))
-(defmethod ->clj content-type-edn [_ body] (edn/read-string body))
+(defmethod ->clj app-clj [repr body] (edn/read-string body))
+(defmethod ->clj app-edn [repr body] (edn/read-string body))
+(defmethod ->clj www-form [repr body] (form-decode body))
 
-;;; Other built-in marshallers
-(defmethod ->clj content-type-form [_ body] (form-decode body))
+(defn deserializable?
+  [request]
+  (let [repr (content-type request)]
+    (when-some [des ((methods ->clj) (:media-type repr))]
+      (partial des repr))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; serialization
+(defn renderable?
+  "Using librarator's representation namespace for response rendering."
+  [repr]
+  ((methods render-map-generic) (:media-type repr)))
+
+(def ^:dynamic *default-media-type* app-edn)
+
+(defn set-default-media-type!
+  [media-type]
+  (when (renderable? {:media-type media-type})
+    (alter-var-root *default-media-type* (fn [_] media-type))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; functions that deal with ring request
-(defn- realize-body
-  [body encoding]
-  (if (string? body)
-    body
-    (slurp body :encoding encoding)))
+(def ^:dynamic *wildcard-media-types* #{"*" "*/*" "text/*" "application/*"})
 
-(defn- select-deserializer
+(defn- wildcards->default-media-type
+  [representation]
+  (if (*wildcard-media-types* (:media-type representation))
+    (assoc representation :media-type *default-media-type*)
+    representation))
+
+(defn- best-representation
   [request]
-  (when-some [parsed-content-type (parse-mime
-                                   (get-header request
-                                               "Content-Type"
-                                               content-type-default))]
-    (when-some [des (deserializable? (:mime parsed-content-type))]
-      [(:mime parsed-content-type)
-       (:charset parsed-content-type)
-       (partial des nil)])))
+  (first
+   (for [repr (accept request)
+         :let [repr (wildcards->default-media-type repr)
+               ser (renderable? repr)]
+         :when ser]
+     repr)))
 
-(def ^:dynamic *wildcard-mime-types* #{"*" "*/*" "text/*" "application/*"})
-
-(defn- wildcards->default-mime-type
-  [{:as mime-type :keys [mime]}]
-  (if (*wildcard-mime-types* mime)
-    (assoc mime-type :mime *default-mime-type*)
-    mime-type))
-
-(defn- select-serializer
+(defn- content?
   [request]
-  (let [mime-types (some->> (get-header request "Accept" *default-mime-type*)
-                            (parse-accept)
-                            (map wildcards->default-mime-type))]
+  (some-> (get-in request [:headers "content-length"])
+          (#(Long. %))
+          (pos?)))
 
-    (first (for [mime mime-types
-                 :let [ser (serializable? (:mime mime))]
-                 :when ser]
-             [(:mime mime) (:charset mime) (partial ser nil)]))))
+(defn- negotiate
+  [request]
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; the actual middleware
-(defn wrap-content-negotiation
-  ([handler {:keys [consumes produces]}]
+  (let [payload? (content? request)
+        des (when payload? (deserializable? request))
+        repr (best-representation request)]
 
-   (let [consumes (set consumes)
-         produces (set produces)]
+    (cond
+     (and payload? (nil? des)) :unsupported
+     (nil? repr)               :not-acceptable
+     :else                     {:des des :repr repr})))
 
-     (fn [request]
+(defn- marshall
+  [handler request {:as opts :keys [des repr]}]
 
-       (let [content-length (req/content-length request)
-             [mime-in  charset-in  des] (select-deserializer request)
-             [mime-out charset-out ser] (select-serializer   request)
+  (let [body    (body-string request)
+        entity  ((or des identity) body)
+        request (assoc request :body entity)
+        resp    (handler request)
 
-             ;; Allow handlers to override serialization & deserialization
-             des (if (consumes mime-in)  identity des)
-             ser (if (produces mime-out) identity ser)]
+        ;; serializes response
+        lib (as-response (:body resp resp) {:representation repr})]
 
-         (cond
-          (and content-length
-               (> content-length 0)
-               (nil? des)) (unsupported-media request)
+    ;; merge lib result with handler result
+    (-> resp
+        (assoc :body (:body lib))
+        (update-in [:headers] merge (:headers lib)))))
 
-          (nil? ser) (not-acceptable request)
-
-          :else (let [body-in (when content-length
-                                (-> (:body request)
-                                    (realize-body charset-in)
-                                    (des)))
-
-                      resp (handler (assoc request :body body-in))]
-
-                  (if-some [body-out (:body resp)]
-                    (-> (assoc resp :body (ser body-out))
-                        (resp/content-type mime-out))
-                    resp)))))))
-
-  ([handler] (wrap-content-negotiation handler {})))
+(defn wrap-negotiator
+  [handler]
+  (fn [request]
+    (let [negotiated (negotiate request)]
+      (condp = negotiated
+        :unsupported    (unsupported-media request)
+        :not-acceptable (not-acceptable request)
+        (marshall handler request negotiated)))))

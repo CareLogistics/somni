@@ -7,7 +7,7 @@
             [somni.middleware.validation :refer [wrap-request-validation]]
             [somni.middleware.access-control :refer :all]
             [somni.middleware.auto-doc :refer [wrap-options]]
-            [somni.middleware.negotiator :refer [wrap-content-negotiation]]
+            [somni.middleware.negotiator :refer [wrap-negotiator]]
             [somni.middleware.bindings :refer [attach-bindings-to-request-params]]
             [somni.middleware.to-ring :refer [wrap-response-as-ring]]))
 
@@ -80,14 +80,14 @@
    :uri     (get-in resource-desc [:uri])
    :op       op
    :mw       user-middleware
-   :schema  (get-in resource-desc [op :schema])
-   :media   (get-in resource-desc [op])
+   :schema   (get-in resource-desc [op :schema])
+   :conneg  (empty? (filter #{:produces :consumes} (get-in resource-desc [op])))
    :deps    deps
    :auth    (get-in resource-desc [:authentication])
    :acls    (get-in resource-desc [:authorization op])})
 
 (defn- stack-middleware
-  [{:keys [handler deps uri mw schema media auth acls]}]
+  [{:keys [handler deps uri mw schema conneg auth acls]}]
 
   {:pre [handler uri]}
 
@@ -97,7 +97,7 @@
           :always      (wrap-response-as-ring)
           (seq mw)     (wrap-middleware mw)
           (seq schema) (wrap-request-validation schema)
-          :always      (wrap-content-negotiation media)
+          conneg       (wrap-negotiator)
           (seq acls)   (wrap-authorization acls)
           auth         (wrap-authentication auth deps)
           :always      (wrap-trace)))
