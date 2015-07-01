@@ -24,9 +24,9 @@
       "Unacceptable response type for serialization")
 
   (is (= (:body (wrapped-th test-req))
-         "{:result 10}")
+         "{\"result\":10}")
       "Correct response returned")
 
   (is (= (get-in (wrapped-th test-req) [:headers "Content-Type"])
-         "application/edn;charset=UTF-8")
+         "application/json;charset=UTF-8")
       "Content-Type set by middleware"))

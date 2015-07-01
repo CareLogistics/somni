@@ -1,4 +1,4 @@
-(defproject somni "1.0.0-RC7"
+(defproject somni "1.0.0-RC8"
   :description ""
   :url "https://github.com/CareLogistics/somni"
   :license {:name "Eclipse Public License 1.0"

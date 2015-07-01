@@ -39,7 +39,7 @@
   [repr]
   ((methods render-map-generic) (:media-type repr)))
 
-(def ^:dynamic *default-media-type* app-edn)
+(def ^:dynamic *default-media-type* app-json)
 
 (defn set-default-media-type!
   [media-type]

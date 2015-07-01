@@ -91,7 +91,7 @@
 
 (deftest stack-middleware-test
   (is (= (:body (sm test-req))
-         "[:delete-report \"wolf-parade\" \"today\" [:user \"fred\"]]"))
+         "[\"delete-report\",\"wolf-parade\",\"today\",[\"user\",\"fred\"]]"))
 
   (is (= (:body (sm (assoc test-req :uri "matzah")))
-         "[:delete-report-template \"matzah\" [:user \"fred\"]]")))
+         "[\"delete-report-template\",\"matzah\",[\"user\",\"fred\"]]")))
