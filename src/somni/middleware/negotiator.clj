@@ -1,5 +1,6 @@
 (ns somni.middleware.negotiator
-  (:require [clojure.edn :as edn]
+  (:require [clojure.data.json :as json]
+            [clojure.edn :as edn]
             [liberator.representation :refer :all]
             [ring.util.request :refer [body-string]]
             [somni.http.errors :refer [not-acceptable unsupported-media]]
@@ -10,6 +11,7 @@
 ;;; string constants
 (def ^:const app-edn "application/edn")
 (def ^:const app-clj "application/clojure")
+(def ^:const app-json "application/json")
 (def ^:const www-form "application/x-www-form-urlencoded")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -22,6 +24,7 @@
 (defmethod ->clj app-clj [repr body] (edn/read-string body))
 (defmethod ->clj app-edn [repr body] (edn/read-string body))
 (defmethod ->clj www-form [repr body] (form-decode body))
+(defmethod ->clj app-json [repr body] (json/read-str body))
 
 (defn deserializable?
   [request]
