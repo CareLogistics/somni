@@ -1,5 +1,5 @@
 (ns somni.middleware.bindings
-  (:require [somni.misc :refer [uri->path]]))
+  (:require [somni.misc :refer [uri->path decode]]))
 
 (def ^:private bindings-rexp #"\w+|:([^\/]*)")
 
@@ -16,7 +16,9 @@
   (fn [{:as request :keys [uri]}]
     (let [path (vec (uri->path uri))
           req (reduce
-               (fn [r [i n]] (assoc-in r [:params (keyword n)] (nth path i nil)))
+               (fn [r [i n]]
+                 (assoc-in r [:params (keyword n)]
+                           (decode (nth path i nil))))
                request
                bindings)]
       (handler req))))

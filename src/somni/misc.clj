@@ -24,14 +24,6 @@
 
 (defn uri->path [uri] (remove empty? (str/split (or uri "") #"/")))
 
-(defn str->map [s re]
-  (->> (str/split s re)
-       (remove empty?)
-       (partition 2)
-       (map (fn [[k v]] [(keyword k) (edn/read-string v)]))
-       (vec)
-       (into {})))
-
 (defn desc [a b] (compare b a))
 
 (defn flip [f] (fn [& args] (apply f (reverse args))))
@@ -49,3 +41,27 @@
        default))
   ([request header]
    (get-header request header nil)))
+
+(def ^:private clj-data #{ \{ \[ \( })
+
+(defn- decode-clj [[x :as xs]]
+  (when (clj-data x) (edn/read-string xs)))
+
+(def ^:private re-num #"([+-]?\d+\.?\d+)")
+
+(defn- decode-num [xs]
+  (when-some [[[num-str]] (re-seq re-num xs)] (edn/read-string xs)))
+
+(defn decode [xs]
+  (when (seq xs)
+    (or (decode-clj xs)
+        (decode-num xs)
+        xs)))
+
+(defn str->map [s re]
+  (->> (str/split s re)
+       (remove empty?)
+       (partition 2)
+       (map (fn [[k v]] [(keyword k) (decode v)]))
+       (vec)
+       (into {})))

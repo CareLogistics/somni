@@ -1,11 +1,10 @@
 (ns somni.middleware.negotiator
-  (:require [somni.http.errors :refer [not-acceptable unsupported-media]]
-            [somni.http.forms :refer [form-decode]]
-            [somni.http.mime :refer :all]
-            [somni.misc :refer [by-tag get-header]]
-            [clojure.edn :as edn]
+  (:require [clojure.edn :as edn]
             [liberator.representation :refer :all]
-            [ring.util.request :refer [body-string]]))
+            [ring.util.request :refer [body-string]]
+            [somni.http.errors :refer [not-acceptable unsupported-media]]
+            [somni.http.forms :refer [form-decode]]
+            [somni.http.mime :refer :all]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; string constants
