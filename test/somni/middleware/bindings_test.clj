@@ -7,12 +7,14 @@
   (let [handler (attach-bindings-to-request-params
                  identity "/user/:user/:page/:sub-page")]
 
-    (is (= (get-in (handler {:uri "/user/bob/profile/contacts"})
-                   [:params :sub-page])
-           "contacts")
-        "Fully bound path works")
+    (is (= (:params (handler {:uri "/user/e.e.%20cummings/profile/poetic%20works"}))
+           {:user "e.e. cummings",
+            :page "profile",
+            :sub-page "poetic works"})
+        "Full bound path test.")
 
-    (is (= (get-in (handler {:uri "/user/pete/wall"})
-                   [:params :sub-page])
-           nil)
-        "URI without matching segment sets param to nil")))
+    (is (= (:params (handler {:uri "/user/%7B%3Auid%20123%7D/7891"}))
+           {:user {:uid 123},
+            :page 7891,
+            :sub-page nil})
+        "Partial bound path test with Clojure data structures")))

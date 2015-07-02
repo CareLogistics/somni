@@ -1,7 +1,8 @@
 (ns somni.misc
   "Miscellaneous functions that don't have an obvious namespace."
   (:require [clojure.string :as str]
-            [clojure.edn :as edn]))
+            [clojure.edn :as edn]
+            [ring.util.codec :refer [url-decode]]))
 
 (defn by-tag
   "For use when dispatching on a tagged tuple"
@@ -54,9 +55,10 @@
 
 (defn decode [xs]
   (when (seq xs)
-    (or (decode-clj xs)
-        (decode-num xs)
-        xs)))
+    (let [xs (url-decode xs)]
+      (or (decode-clj xs)
+          (decode-num xs)
+          xs))))
 
 (defn str->map [s re]
   (->> (str/split s re)

@@ -27,6 +27,7 @@
                       :body 123},
             :identity {:r [:x :y], :u 1},
             :payload 123,
+            :entity 123,
             :params {:visit-id "x"},
             :visit-id "x",
             :headers {"a" "b"},

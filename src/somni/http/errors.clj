@@ -14,7 +14,7 @@
 (defn not-found          [_] {:status 404, :body "Not found"})
 (defn unsupported-method [_] {:status 405, :body "Unsupported HTTP method"})
 (defn not-acceptable     [_] {:status 406, :body "Not Acceptable"})
-(defn unsupported-media  [_] {:status 415, :body "Unsupported content-type"})
+(defn unsupported-media  [_] {:status 415, :body "Unsupported Content-Type"})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Server-side errors

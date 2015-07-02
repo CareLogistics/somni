@@ -1,5 +1,6 @@
 (ns somni.middleware.negotiator
-  (:require [clojure.data.json :as json]
+  (:require [camel-snake-kebab.core :refer :all]
+            [clojure.data.json :as json]
             [clojure.edn :as edn]
             [liberator.representation :refer :all]
             [ring.util.request :refer [body-string]]
@@ -45,6 +46,30 @@
   [media-type]
   (when (renderable? {:media-type media-type})
     (alter-var-root *default-media-type* (fn [_] media-type))))
+
+(def ^:dynamic *json-naming-style* ->snake_case)
+
+(def supported-name-styles
+  {:snake ->snake_case :camel ->camelCase :kebab ->kebab-case :pascal ->PascalCase})
+
+(defn set-json-case!
+  [style]
+  {:pre [(supported-name-styles style)]}
+  (alter-var-root *json-naming-style*
+                  (fn [_] (supported-name-styles style))))
+
+(defn- key-fn
+  [x]
+  (cond
+   (instance? clojure.lang.Named x) (name x)
+   (nil? x) (throw (Exception. "Serialized object properties may not be nil"))
+   :else (str x)))
+
+(defmethod render-map-generic "application/json" [data context]
+  (json/write-str data :key-fn (comp *json-naming-style* key-fn)))
+
+(defmethod render-seq-generic "application/json" [data context]
+  (json/write-str data :key-fn (comp *json-naming-style* key-fn)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; functions that deal with ring request

@@ -7,26 +7,27 @@
                          "content-type" "application/edn"
                          "content-length" "9"}})
 
-(defn test-handler [{:keys [body]}] {:body {:result (apply + body)}})
+(defn test-handler [{:keys [body]}] {:body {:add-result (apply + body)}})
 
 (def wrapped-th (wrap-negotiator test-handler))
 
 (deftest wrap-content-negotiation-test
-  (is (= (:status (wrapped-th {:body "[a b c d]"
-                               :headers {"content-length" 9}}))
-         415)
+  (is (= (wrapped-th {:body "[a b c d]",
+                      :headers {"content-length" 9}})
+         {:status 415,
+          :body "Unsupported Content-Type"})
+
       "Unsupported media type for deserialization")
 
-  (is (= (:status (wrapped-th {:body "[a b c d]",
-                               :headers {"accept" "no/way"
-                                         "content-type" "application/edn"}}))
-         406)
+  (is (= (wrapped-th {:body "[a b c d]",
+                      :headers {"accept" "no/way"
+                                "content-type" "application/edn"}})
+         {:status 406,
+          :body "Not Acceptable"})
+
       "Unacceptable response type for serialization")
 
-  (is (= (:body (wrapped-th test-req))
-         "{\"result\":10}")
-      "Correct response returned")
-
-  (is (= (get-in (wrapped-th test-req) [:headers "Content-Type"])
-         "application/json;charset=UTF-8")
-      "Content-Type set by middleware"))
+  (is (= (wrapped-th test-req)
+         {:headers {"Content-Type" "application/json;charset=UTF-8"},
+          :body "{\"add_result\":10}"})
+      "Correct response returned"))

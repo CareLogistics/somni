@@ -48,6 +48,7 @@
    (extract-as :body)
    (extract-as :body :data)
    (extract-as :body :payload)
+   (extract-as :body :entity)
    (extract-as :headers)
    (extract-as :params)
    (extract-as :query-params)
