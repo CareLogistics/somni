@@ -16,21 +16,17 @@
       details)))
 
 (defn wrap-uncaught-exceptions
-  "
-  Returns a function that takes an r (request or response).  It invokes next-fn
-  with r, catches exceptions thrown by next-fn.
-
-  on-error is invoked with r merged with ex-data and ex-details added as :error.
-  "
+  "..."
   ([next-fn on-error]
 
    {:pre [next-fn on-error]}
 
-   (fn [r]
-     (let [x (try (next-fn r) (catch Exception e e))]
-       (if (instance? Throwable x)
-         (on-error (assoc (merge r (ex-data x))
-                     :error (ex-details x)))
-         x))))
+   (fn [req]
+     (let [resp (try (next-fn req) (catch Exception e e))]
+       (if (instance? Throwable resp)
+         (on-error (merge {:body {:request req
+                                  :details (ex-details resp)}}
+                          (ex-data resp)))
+         resp))))
 
   ([next-fn] (wrap-uncaught-exceptions next-fn server-error)))

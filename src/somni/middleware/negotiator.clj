@@ -65,11 +65,17 @@
    (nil? x) (throw (Exception. "Serialized object properties may not be nil"))
    :else (str x)))
 
-(defmethod render-map-generic "application/json" [data context]
-  (json/write-str data :key-fn (comp *json-naming-style* key-fn)))
+(defn- write-generic [x ^java.io.PrintWriter out]
+  (if (.isArray (class x))
+    (json/-write (seq x) out)
+    (json/-write (pr-str x) out)))
 
-(defmethod render-seq-generic "application/json" [data context]
-  (json/write-str data :key-fn (comp *json-naming-style* key-fn)))
+(extend java.lang.Object json/JSONWriter {:-write write-generic})
+
+(defn- json-write [data] (json/write-str data :key-fn (comp *json-naming-style* key-fn)))
+
+(defmethod render-map-generic "application/json" [data context] (json-write data))
+(defmethod render-seq-generic "application/json" [data context] (json-write data))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; functions that deal with ring request

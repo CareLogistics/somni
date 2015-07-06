@@ -1,14 +1,10 @@
 (ns somni.http.errors
-  (:require [clojure.pprint :as pp]))
+  (:require [clojure.pprint :refer [pprint]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Client-side errors
 
-(defn malformed-request
-  [{:as r :keys [dev-mode]}]
-  (when dev-mode (pp/write r))
-  {:status 400, :body "Malformed request"})
-
+(defn malformed-request  [_] {:status 400, :body "Malformed request"})
 (defn not-authenticated  [_] {:status 401, :body "Authentication required"})
 (defn access-denied      [_] {:status 403, :body "Access denied"})
 (defn not-found          [_] {:status 404, :body "Not found"})
@@ -16,27 +12,32 @@
 (defn not-acceptable     [_] {:status 406, :body "Not Acceptable"})
 (defn unsupported-media  [_] {:status 415, :body "Unsupported Content-Type"})
 
+(defn client-error? [status] (and (number? status)
+                                   (>= status 400)
+                                   (<  status 500)
+                                   status))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Server-side errors
 
-(defn- server-error? [status] (and (number? status)
+(defn server-error? [status] (and (number? status)
                                    (>= status 500)
                                    (<  status 600)
                                    status))
 
 (defn server-error
-  "This is a general purpose server error.  It includes r either in console
-  *out* or in the body of the http response.  If there is a server error
-  :status set in r, it will be the :status used in the response.
-  "
-  ([{:as r :keys [status]} dev-mode]
+  "..."
+  ([{:as resp :keys [status]} dev-mode]
+   (let [status (or (server-error? status) 500)
+         resp (assoc resp :status status)]
 
-   {:status (or (server-error? status) 500)
+     (if dev-mode
+       resp
+       (do (pprint resp)
+           {:status status,
+            :body {:error "Internal server error"}}))))
 
-    :content-type "application/text"
+  ([resp] (server-error resp nil)))
 
-    :body (if dev-mode
-            (pp/write r :stream nil)
-            "Internal server error")})
-
-  ([r] (server-error r nil)))
+(defn http-error? [status] (or (client-error? status)
+                               (server-error? status)))

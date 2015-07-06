@@ -19,8 +19,12 @@
                                              #(server-error % :dev-mode)))
 
 (deftest wrap-uncaught-exceptions-test
-  (is (= 500 (:status (weh {}))))
-  (is (= "Internal server error" (:body (weh {}))))
+  (is (= (:status (weh {}))
+         500))
+
+  (is (= (:body (weh {}))
+         {:error "Internal server error"}))
+
   (let [r (wth {})]
     (is (= (:status r) 500))
     (is (not= (:body r) "Internal server error"))))

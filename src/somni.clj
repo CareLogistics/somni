@@ -29,16 +29,17 @@
            on-missing
            on-error
            uri-prefix]
-    :or {on-error   #(server-error % true)
+    :or {on-error   server-error
          on-missing not-found}}]
 
   (s/validate somni-schema resources)
 
   (let [resources (add-prefix resources uri-prefix)
-        stack-fn #(stacker/stack % deps user-middleware)
+        stack-fn #(stacker/stack % deps
+                                 :user-middleware user-middleware
+                                 :on-error on-error)
         stacked   (mapcat stack-fn resources)
         router    (router/add-routes {} stacked)
         handler   (router/router->handler router)]
 
-    (-> handler
-        (wrap-uncaught-exceptions on-error))))
+    handler))

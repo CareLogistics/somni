@@ -1,8 +1,9 @@
 (ns somni.stacker-test
-  (:require [somni.stacker :refer :all]
-            [clojure.test :refer :all]
+  (:require [clojure.test :refer :all]
             [schema.core :as s]
-            [somni.middleware.access-control :refer [request->identity]]))
+            [somni.http.errors :refer [server-error]]
+            [somni.middleware.access-control :refer [request->identity]]
+            [somni.stacker :refer :all]))
 
 (def +gen-report+
   "adds to acceptable media"
@@ -12,7 +13,7 @@
   sample-getter
   "Generates report for date"
   [report-id date]
-  "here is your report")
+  (ex-info "Report not found" {:report-id report-id, :date date}))
 
 (def +new-report+
   "adds to supported media & sets up schema"
@@ -83,15 +84,24 @@
   (is (= (#'somni.stacker/describe-resource sample-resource)
          expected-described-resource)))
 
-(def sm (#'somni.stacker/configure-handler expected-described-resource :delete {} []))
-
-(def test-req {:uri "wolf-parade/today"
-               :request-method :delete
-               :headers {"Accept" "*/*"}})
-
 (deftest stack-middleware-test
-  (is (= (:body (sm test-req))
-         "[\"delete-report\",\"wolf-parade\",\"today\",[\"user\",\"fred\"]]"))
+  (let [sm (#'somni.stacker/configure-handler expected-described-resource :delete {} [] identity)
+        test-req {:uri "wolf-parade/today"
+               :request-method :delete
+                  :headers {"Accept" "*/*"}}]
+    (is (= (:body (sm test-req))
+           "[\"delete-report\",\"wolf-parade\",\"today\",[\"user\",\"fred\"]]"))
 
-  (is (= (:body (sm (assoc test-req :uri "matzah")))
-         "[\"delete-report-template\",\"matzah\",[\"user\",\"fred\"]]")))
+    (is (= (:body (sm (assoc test-req :uri "matzah")))
+           "[\"delete-report-template\",\"matzah\",[\"user\",\"fred\"]]"))))
+
+(deftest error-test
+  (let [sm (#'somni.stacker/configure-handler expected-described-resource :get {} [] server-error)
+        test-req {:uri "wolf-parade/today"
+                  :request-method :get
+                  :headers {"Accept" "*/*"}}]
+
+    (prn (sm test-req))
+
+    (is (= (:status (sm test-req))
+           500))))

@@ -9,7 +9,8 @@
             [somni.middleware.auto-doc :refer [wrap-options]]
             [somni.middleware.negotiator :refer [wrap-negotiator]]
             [somni.middleware.bindings :refer [attach-bindings-to-request-params]]
-            [somni.middleware.to-ring :refer [wrap-response-as-ring]]))
+            [somni.middleware.to-ring :refer [wrap-response-as-ring]]
+            [somni.middleware.exceptions :refer [wrap-uncaught-exceptions]]))
 
 (def ops #{:get :put :post :delete :any})
 (def ops-schema (apply s/enum ops))
@@ -69,25 +70,26 @@
 (defn wrap-trace
   [handler]
   (fn [request]
-     (let [trace-id (or (get-in request [:headers *somni-trace-id*])
-                         (gen-trace-id))]
-        (-> request (assoc-trace trace-id)
-            handler (assoc-trace trace-id)))))
+    (let [trace-id (or (get-in request [:headers *somni-trace-id*])
+                       (gen-trace-id))]
+      (-> request (assoc-trace trace-id)
+          handler (assoc-trace trace-id)))))
 
 (defn- config-stacker
-  [resource-desc op deps user-middleware]
+  [resource-desc op deps user-middleware on-error]
   {:handler (get-in resource-desc [op :handler])
    :uri     (get-in resource-desc [:uri])
    :op       op
    :mw       user-middleware
    :schema   (get-in resource-desc [op :schema])
    :conneg  (empty? (filter #{:produces :consumes} (get-in resource-desc [op])))
+   :on-error on-error
    :deps    deps
    :auth    (get-in resource-desc [:authentication])
    :acls    (get-in resource-desc [:authorization op])})
 
 (defn- stack-middleware
-  [{:keys [handler deps uri mw schema conneg auth acls]}]
+  [{:keys [handler deps uri mw schema conneg on-error auth acls]}]
 
   {:pre [handler uri]}
 
@@ -97,6 +99,7 @@
           :always      (wrap-response-as-ring)
           (seq mw)     (wrap-middleware mw)
           (seq schema) (wrap-request-validation schema)
+          :always      (wrap-uncaught-exceptions on-error)
           conneg       (wrap-negotiator)
           (seq acls)   (wrap-authorization acls)
           auth         (wrap-authentication auth deps)
@@ -105,13 +108,13 @@
 (def ^:private configure-handler (comp stack-middleware config-stacker))
 
 (defn stack
-  ([resource deps user-middleware]
-   ;; [op path handaaaaler-fn] where path is uri + op
+  ([resource deps & {:as options :keys [user-middleware on-error]}]
+
    (let [resource-desc (describe-resource resource)]
 
      (for [op ops :when (op resource-desc)]
        [op
         (:uri resource-desc)
-        (configure-handler resource-desc op deps user-middleware)])))
+        (configure-handler resource-desc op deps user-middleware on-error)])))
 
   ([resource] (stack resource {} [])))
