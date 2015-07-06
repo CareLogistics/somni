@@ -2,7 +2,8 @@
   "Miscellaneous functions that don't have an obvious namespace."
   (:require [clojure.string :as str]
             [clojure.edn :as edn]
-            [ring.util.codec :refer [url-decode]]))
+            [ring.util.codec :refer [url-decode]]
+            [camel-snake-kebab.core :refer [->kebab-case]]))
 
 (defn by-tag
   "For use when dispatching on a tagged tuple"
@@ -64,6 +65,6 @@
   (->> (str/split s re)
        (remove empty?)
        (partition 2)
-       (map (fn [[k v]] [(keyword k) (decode v)]))
+       (map (fn [[k v]] [(keyword (->kebab-case k)) (decode v)]))
        (vec)
        (into {})))
