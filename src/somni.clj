@@ -28,8 +28,9 @@
    {:keys [user-middleware
            on-missing
            on-error
-           uri-prefix]
-    :or {on-error   server-error
+           uri-prefix
+           dev-mode]
+    :or {on-error  #(server-error % dev-mode)
          on-missing not-found}}]
 
   (s/validate somni-schema resources)

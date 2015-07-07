@@ -24,8 +24,11 @@
 
 (defmethod ->clj app-clj [repr body] (edn/read-string body))
 (defmethod ->clj app-edn [repr body] (edn/read-string body))
+
 (defmethod ->clj www-form [repr body] (form-decode body))
-(defmethod ->clj app-json [repr body] (json/read-str body))
+
+(defmethod ->clj app-json [repr body]
+  (json/read-str body :key-fn (comp keyword ->kebab-case)))
 
 (defn deserializable?
   [request]
