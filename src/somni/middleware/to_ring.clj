@@ -1,9 +1,29 @@
 (ns somni.middleware.to-ring)
 
-(defn- ring?
+(defn- status?
+  [{:keys [status]}]
+  (or (nil? status)
+      (and (number? status)
+           (>= status 100)
+           (<= status 599))))
+
+(defn- headers?
+  [{:keys [headers]}]
+  (or (nil? headers)
+      (and (map? headers)
+           (every? string? (keys headers)))))
+
+(defn- body?
+  [{:keys [status body]}]
+  (or body
+      (#{204 404} status)))
+
+(defn- response?
   [response]
   (and (map? response)
-       (some #{:status :headers :body} (keys response))))
+       (every? identity [(status?  response)
+                         (headers? response)
+                         (body?    response)])))
 
 (defn- ->response
   [status body]
@@ -23,7 +43,7 @@
   (fn [{:as req :keys [request-method]}]
     (let [resp (handler req)]
       (cond
-        (ring? resp)                resp
+        (response? resp)            resp
         (instance? Throwable resp) (throw resp)
         :else                      (->response
                                     (response-status req resp)

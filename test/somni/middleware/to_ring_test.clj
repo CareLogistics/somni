@@ -3,9 +3,9 @@
             [clojure.test :refer :all]))
 
 (deftest wrap-->ring-test
-  (is (= ((wrap-response-as-ring (fn [_] {:status 666 :body "untouched"}))
+  (is (= ((wrap-response-as-ring (fn [_] {:status 111 :body "untouched"}))
           {})
-         {:status 666 :body "untouched"})
+         {:status 111 :body "untouched"})
       "Use response unchanged if ring response regardless the request")
 
   (let [nil-handler (wrap-response-as-ring (constantly nil))]

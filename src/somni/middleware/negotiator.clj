@@ -75,6 +75,11 @@
 
 (extend java.lang.Object json/JSONWriter {:-write write-generic})
 
+(extend-type java.util.Map
+  Representation
+  (as-response [this context]
+    (as-response (render-map-generic this context) context)))
+
 (defn- json-write [data] (json/write-str data :key-fn (comp *json-naming-style* key-fn)))
 
 (defmethod render-map-generic "application/json" [data context] (json-write data))

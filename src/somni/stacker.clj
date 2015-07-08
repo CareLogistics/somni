@@ -81,10 +81,10 @@
    :uri     (get-in resource-desc [:uri])
    :op       op
    :mw       user-middleware
-   :schema   (get-in resource-desc [op :schema])
-   :conneg  (empty? (filter #{:produces :consumes} (get-in resource-desc [op])))
+   :schema  (get-in resource-desc [op :schema])
+   :conneg  (not-any? (get-in resource-desc [op]) [:produces :consumes])
    :on-error on-error
-   :deps    deps
+   :deps     deps
    :auth    (get-in resource-desc [:authentication])
    :acls    (get-in resource-desc [:authorization op])})
 
