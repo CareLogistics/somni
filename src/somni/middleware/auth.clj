@@ -1,25 +1,39 @@
 (ns somni.middleware.auth
-  (:require [somni.middleware.auth.backends :as backends]
+  (:require [buddy.auth.accessrules :refer [success error]]
+            [buddy.auth.protocols :as buddy-proto]
+            [buddy.auth :refer [authenticated?]]
             [somni.http.errors :refer [not-authenticated]]
-            [buddy.auth.protocols :as buddy-proto]))
+            [somni.middleware.auth.backends :as backends]))
 
 (defn- authenticate
   "..."
   [backend request]
-  (let [data (buddy-proto/parse backend request)]
-    (if (nil? data)
-      nil
-      (buddy-proto/authenticate backend request data))))
+  (when-some [data (buddy-proto/parse backend request)]
+    (buddy-proto/authenticate backend request data)))
+
+(defn- wrap-authentication*
+  [handler backend]
+  (fn [request]
+    (let [id (authenticate backend request)]
+      (-> request (assoc :identity id)
+          handler (assoc :identity id)))))
 
 (defn wrap-authentication
   "..."
   [handler backend]
-  (fn [request]
-    (if (nil? backend)
-      (handler request))
-      (if-some [id (authenticate backend request)]
-         (-> request (assoc :identity id)
-             handler (assoc :identity id))
-         (not-authenticated request))))
+  (if backend
+    (wrap-authentication* handler backend)
+    handler))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
 
+(defn grant-to
+  "..."
+  [roles]
+  (let [roles (set roles)]
+    (fn [{:as request :keys [identity]}]
+      (if (and (authenticated? request)
+               (some roles (:roles identity)))
+        true
+        (error "Not authorized")))))
