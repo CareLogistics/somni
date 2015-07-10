@@ -2,21 +2,27 @@
   (:require [buddy.auth.accessrules :refer [success error]]
             [buddy.auth.protocols :as buddy-proto]
             [buddy.auth :refer [authenticated?]]
-            [somni.http.errors :refer [not-authenticated]]))
+            [somni.http.errors :refer [not-authenticated
+                                       access-denied]]))
 
-(defn authenticate [a b] nil)
-#_(defn- authenticate
+#_(defn authenticate [a b] nil)
+(defn- authenticate
   "..."
   [backend request]
-  (when-some [data (buddy-proto/parse backend request)]
-    (buddy-proto/authenticate backend request data)))
+  (let [request* (when-some [data (buddy-proto/parse backend request)]
+                            (buddy-proto/authenticate backend request data))]
+    (if-not (nil? request*)
+      (request* :identity)
+      nil)))
 
 (defn- wrap-authentication*
   [handler backend]
   (fn [request]
     (let [id (authenticate backend request)]
-      (-> request (assoc :identity id)
-          handler (assoc :identity id)))))
+      (if-not (nil? id)
+        (-> request (assoc :identity id)
+            handler (assoc :identity id))
+        (not-authenticated request)))))
 
 (defn wrap-authentication
   "..."

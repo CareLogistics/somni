@@ -104,7 +104,7 @@
           :always      (wrap-uncaught-exceptions on-error)
           conneg       (wrap-negotiator)
           (seq acls)   (wrap-authorization acls)
-          auth         (wrap-authentication (get-authn-backend auth))
+          auth         (wrap-authentication (get-authn-backend {:type auth}))
           :always      (wrap-trace)))
 
 (def ^:private configure-handler (comp stack-middleware config-stacker))

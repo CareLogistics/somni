@@ -18,7 +18,7 @@
 ;;{:type :jws, :secret "foowhoWoohoo"}
 (defmethod get-authn-backend :jwe [m] (token/jwe-backend m))
 ;;{:type :session}
-(defmethod get-authn-backend :session [m] (session/session-backend) m)
+(defmethod get-authn-backend :session [m] (session/session-backend m))
 
 ;; care-logistics backends
 #_{:type :ssl, :ask-eric "or look at patient itinerary"}

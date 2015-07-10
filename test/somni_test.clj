@@ -2,7 +2,9 @@
   (:require [clojure.test :refer :all]
             [schema.core :as s]
             [somni.middleware.access-control :refer [request->identity]]
-            [somni :refer :all]))
+            [somni :refer :all]
+            [somni.middleware.auth.backends :refer :all]
+            [buddy.auth.protocols :as buddy-proto]))
 
 (defn hello [name body db]
   (cond
@@ -28,7 +30,19 @@
   [uid identity db]
   (db :get uid :by identity))
 
-(defmethod request->identity :trusting [_ request] (:identity request))
+#_(defmethod request->identity :trusting [_ request] (:identity request))
+
+;;define a test buddy backend
+(defn trusting-backend []
+  (reify
+    buddy-proto/IAuthentication
+    (parse [_ request]
+      (:identity request))
+    (authenticate [_ request data]
+      (assoc request :identity data))))
+
+(defmethod get-authn-backend :trusting [m] (trusting-backend))
+
 
 (def sample-resources
   [
@@ -48,7 +62,8 @@
     :authentication :trusting
     :authorization {:get    #{:admin :user}
                     :delete #{:admin}
-                    :put    #{:admin}}}
+                    :put    #{:admin}
+                    :post   #{:admin}}}
 
    {:uri   "user"
     :doc   "Add a user, with server generated uid"
