@@ -99,11 +99,12 @@
           :always      (wrap-response-as-ring)
           (seq mw)     (wrap-middleware mw)
           (seq schema) (wrap-request-validation schema)
-          :always      (wrap-uncaught-exceptions on-error)
+          :always      (wrap-uncaught-exceptions on-error) ; serializable errors
           conneg       (wrap-negotiator)
           (seq acls)   (wrap-authorization acls)
           auth         (wrap-authentication auth deps)
-          :always      (wrap-trace)))
+          :always      (wrap-trace)
+          :always      (wrap-uncaught-exceptions on-error))) ; unserializable errors
 
 (def ^:private configure-handler (comp stack-middleware config-stacker))
 
