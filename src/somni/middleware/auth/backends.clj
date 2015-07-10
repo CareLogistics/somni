@@ -4,15 +4,21 @@
             [buddy.auth.protocols :refer :all]))
 
 ;;
-(defmulti get-auth-backend :type)
+(defmulti get-authn-backend :type)
+
+(defmethod get-authn-backend :default
+  [{:keys [type]}]
+  (if (nil? type)
+    nil
+    (throw (ex-info "Authentication type invalid" {:type type}))))
 
 ;; buddy backends
 ;;{:type :jwe, :secret "changeit"}
-(defmethod get-auth-backend :jws [m] (token/jws-backend m))
+(defmethod get-authn-backend :jws [m] (token/jws-backend m))
 ;;{:type :jws, :secret "foowhoWoohoo"}
-(defmethod get-auth-backend :jwe [m] (token/jwe-backend m))
+(defmethod get-authn-backend :jwe [m] (token/jwe-backend m))
 ;;{:type :session}
-(defmethod get-auth-backend :session [m] (session/session-backend) m)
+(defmethod get-authn-backend :session [m] (session/session-backend) m)
 
 ;; care-logistics backends
 #_{:type :ssl, :ask-eric "or look at patient itinerary"}

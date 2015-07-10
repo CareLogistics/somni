@@ -5,7 +5,9 @@
             [schema.core :as s]
             [somni.middleware.injectors :refer [inject-deps-into-handler]]
             [somni.middleware.validation :refer [wrap-request-validation]]
-            [somni.middleware.access-control :refer :all]
+            [somni.middleware.access-control :refer [wrap-authorization]]
+            [somni.middleware.auth :refer :all]
+            [somni.middleware.auth.backends :refer :all]
             [somni.middleware.auto-doc :refer [wrap-options]]
             [somni.middleware.negotiator :refer [wrap-negotiator]]
             [somni.middleware.bindings :refer [attach-bindings-to-request-params]]
@@ -102,7 +104,7 @@
           :always      (wrap-uncaught-exceptions on-error)
           conneg       (wrap-negotiator)
           (seq acls)   (wrap-authorization acls)
-          auth         (wrap-authentication auth deps)
+          auth         (wrap-authentication (get-authn-backend auth))
           :always      (wrap-trace)))
 
 (def ^:private configure-handler (comp stack-middleware config-stacker))

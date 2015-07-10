@@ -2,10 +2,10 @@
   (:require [buddy.auth.accessrules :refer [success error]]
             [buddy.auth.protocols :as buddy-proto]
             [buddy.auth :refer [authenticated?]]
-            [somni.http.errors :refer [not-authenticated]]
-            [somni.middleware.auth.backends :as backends]))
+            [somni.http.errors :refer [not-authenticated]]))
 
-(defn- authenticate
+(defn authenticate [a b] nil)
+#_(defn- authenticate
   "..."
   [backend request]
   (when-some [data (buddy-proto/parse backend request)]
