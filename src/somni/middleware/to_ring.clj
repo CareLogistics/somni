@@ -3,7 +3,7 @@
 (defn- status?
   [{:keys [status]}]
   (or (nil? status)
-      (and (number? status)
+      (and (integer? status)
            (>= status 100)
            (<= status 599))))
 

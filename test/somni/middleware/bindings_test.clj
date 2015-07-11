@@ -4,16 +4,17 @@
 
 (deftest wrap-bindings-test
 
-  (let [handler (attach-bindings-to-request-params
-                 identity "/user/:user/:page/:sub-page")]
+  (let [handler (attach-bindings
+                 identity "/user/:user/:page/:sub-page/?")]
 
-    (is (= (:params (handler {:uri "/user/e.e.%20cummings/profile/poetic%20works"}))
+    (is (= (:bindings
+            (handler {:uri "/user/e.e.%20cummings/profile/poetic%20works"}))
            {:user "e.e. cummings",
             :page "profile",
             :sub-page "poetic works"})
         "Full bound path test.")
 
-    (is (= (:params (handler {:uri "/user/%7B%3Auid%20123%7D/7891"}))
+    (is (= (:bindings (handler {:uri "/user/%7B%3Auid%20123%7D/7891"}))
            {:user {:uid 123},
             :page 7891,
             :sub-page nil})

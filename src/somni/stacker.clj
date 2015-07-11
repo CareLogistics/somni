@@ -3,12 +3,13 @@
   (:require [somni.misc :refer :all]
             [clojure.pprint :as pp]
             [schema.core :as s]
-            [somni.middleware.injectors :refer [inject-deps-into-handler]]
+            [somni.middleware.injectors :refer [inject-deps]]
             [somni.middleware.validation :refer [wrap-request-validation]]
             [somni.middleware.access-control :refer :all]
+            [somni.middleware.extractions :refer [wrap-extractions]]
             [somni.middleware.auto-doc :refer [wrap-options]]
             [somni.middleware.negotiator :refer [wrap-negotiator]]
-            [somni.middleware.bindings :refer [attach-bindings-to-request-params]]
+            [somni.middleware.bindings :refer [attach-bindings]]
             [somni.middleware.to-ring :refer [wrap-response-as-ring]]
             [somni.middleware.exceptions :refer [wrap-uncaught-exceptions]]))
 
@@ -80,6 +81,7 @@
   {:handler (get-in resource-desc [op :handler])
    :uri     (get-in resource-desc [:uri])
    :op       op
+   :extract (#{:any :get} op)
    :mw       user-middleware
    :schema  (get-in resource-desc [op :schema])
    :conneg  (not-any? (get-in resource-desc [op]) [:produces :consumes])
@@ -89,13 +91,14 @@
    :acls    (get-in resource-desc [:authorization op])})
 
 (defn- stack-middleware
-  [{:keys [handler deps uri mw schema conneg on-error auth acls]}]
+  [{:keys [handler deps uri extract mw schema conneg on-error auth acls]}]
 
   {:pre [handler uri]}
 
   (cond-> handler
-          :always      (inject-deps-into-handler deps)
-          :always      (attach-bindings-to-request-params uri)
+          :always      (inject-deps deps)
+          :always      (attach-bindings uri)
+          extract      (wrap-extractions uri)
           :always      (wrap-response-as-ring)
           (seq mw)     (wrap-middleware mw)
           (seq schema) (wrap-request-validation schema)

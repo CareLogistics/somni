@@ -4,8 +4,8 @@
 
 (deftest bindings->wildcard-test
   (is
-   (= (bindings->wildcard "/a/:w-!-123-souffle/x")
-      "/a/*/x")
+   (= (wildcards->globs "/a/:w-!-123-souffle/?/x/?")
+      "/a/*/?/x/*")
    "Convert keyword path segments to wildcards"))
 
 (deftest router-definition-test

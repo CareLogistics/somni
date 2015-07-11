@@ -27,67 +27,64 @@
       ([m2] (partial-from-map f-var (merge m-args m2)))
       ([] (apply f-var (best-match (arglists f-var) m-args))))))
 
-(defn- extract-as
-  ([k as] (fn [m] (when-some [v (m k)] {as v})))
-  ([k] (extract-as k k)))
+(defn- duplicate-as
+  ([k & as]
+   (fn [m]
+     (when-some [v (m k)]
+       (reduce #(assoc %1 %2 v) {} as)))))
 
-(def ^:dynamic *dep-generators*
+(defn- lift-values [k]
+  (fn [r]
+    (let [z (r k)]
+      (when (map? z) z))))
+
+(defn- request->deps
+  [request]
+  (reduce #(merge (%2 %1) %1)
+          request
+          [(fn [r] (assoc r :request r, :req r, :r r))
+           (duplicate-as :body :data :payload :entity)
+           (lift-values :identity)      ; highest precedence
+           (lift-values :bindings)
+           (lift-values :body)
+           (lift-values :params)
+           (lift-values :query-params)])) ; lowest precedence
+
+(defn context-aware
+  [x]
+  {:pre [(ifn? x)]}
+  [::ctx x])
+
+(defn- context-aware?
+  [x]
+  (when (and (coll? x)
+             (= ::ctx (first x)))
+    (second x)))
+
+(defn- add-context
+  [request dep]
+  (if-some [ctx-dep (context-aware? dep)]
+    (ctx-dep request)
+    dep))
+
+(defn- with-context
+  [request deps]
+  (reduce (fn [a [k v]] (assoc a k (add-context request v)))
+          {}
+          deps))
+
+(defn inject-deps
+  "Applies handler args by name from request & dependencies.  Dependencies
+  that are wrapped in request-aware will be passed the request through function
+  invocation prior to the dependency being passed to the handler.
+
+  This enables using non-ring aware functions as ring handlers.  For example,
+    (defn say [uri db] (db uri))
+    (def dsay (inject-deps #'say {:db prn}))
+    (dsay {:uri \"hello\" })
   "
-  Functions that extract portions of a ring request to be injected as deps
-  that will be injected by name into a wrap-deps function.
-
-  Default extraction/injections are:
-  * request      -> request
-  * body         -> body, 'data and 'payload
-  * headers      -> header
-  * query-params -> query-params & keys to args
-  * params       -> params & keys to args
-  * identity     -> identity & keys to args
-  "
-  [(fn [r] {:request r, :req r, :r r})
-   (extract-as :body)
-   (extract-as :body :data)
-   (extract-as :body :payload)
-   (extract-as :body :entity)
-   (extract-as :headers)
-   (extract-as :params)
-   (extract-as :query-params)
-   (extract-as :identity)
-   :query-params
-   :params
-   :identity])
-
-(defn- generate-deps [r] (reduce #(merge %1 (%2 r)) {} *dep-generators*))
-
-(defn inject-deps-into-handler
-  "
-  Injects depenendencies into a handler function, based upon deps provided
-  as well as dependencies generated from the request.
-
-    handler - must var or otherwise have meta that includes arglists
-    deps    - is a map of named items to values
-
-  See *dep-generators* - a vector of functions that take a map & return a map.
-  The result of each dep-generator function will be merged into request before
-  handler is invoked.
-
-  This allows handler functions to be written in an application's business
-  domain rather than as ring specific handlers.
-
-  Example: (defn hello [{:as request :keys [body params] ...}] (let [...]...))
-  becomes: (defn hello [user body param1 param2] ...)
-  where:
-  * param1 & param2 are lifted from params
-  * user is lifted from request identity
-  * body is lifted from request
-
-  Additionally, dependencies required by a handler - such as database, other
-  services, etc - can be applied through this middleware.  This is an alternative
-  to boxing your functions in componenent or utilizing global vars to pass these
-  values.
-  "
-  [handler deps]
-  (fn [request]
-    ((partial-from-map handler
-                       (merge (unthunk deps)
-                              (generate-deps request))))))
+  ([handler deps]
+   (fn [request]
+     (let [request (request->deps request)
+           deps (with-context request deps)]
+       ((partial-from-map handler (merge request deps)))))))

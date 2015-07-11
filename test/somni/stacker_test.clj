@@ -87,7 +87,7 @@
 (deftest stack-middleware-test
   (let [sm (#'somni.stacker/configure-handler expected-described-resource :delete {} [] identity)
         test-req {:uri "wolf-parade/today"
-               :request-method :delete
+                  :request-method :delete
                   :headers {"Accept" "*/*"}}]
     (is (= (:body (sm test-req))
            "[\"delete-report\",\"wolf-parade\",\"today\",[\"user\",\"fred\"]]"))

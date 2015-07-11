@@ -8,9 +8,9 @@
             [somni.http.errors :refer [not-found
                                        unsupported-method]]))
 
-(defn bindings->wildcard
+(defn wildcards->globs
   [uri]
-  (str/replace uri #":[^\/]+" "*"))
+  (str/replace uri #"[:$][^\/]+(\/\?$)?|\?$" "*"))
 
 (defn- has-route?
   "determine if a router has an exact match for a route"
@@ -19,8 +19,8 @@
 
 (defn- ->path [p]
   (cond
-   (string? p) (->path (uri->path p))
-   (coll?   p) (map bindings->wildcard p)))
+    (string? p) (uri->path (wildcards->globs p))
+    (coll?   p) (map wildcards->globs p)))
 
 (defn add-route
   "add a new route handler to a router"
@@ -82,6 +82,6 @@
        (condp = handler
          :no-such-op   (unsupported-method request)
          :no-such-path (on-missing request)
-                       (handler request)))))
+         (handler (assoc request :path path))))))
 
   ([router] (router->handler router not-found)))

@@ -26,7 +26,7 @@
 
 (defn get-user
   [uid identity db]
-  (db :get uid :by identity))
+  {:user (assoc identity :uid (db uid))})
 
 (defmethod request->identity :trusting [_ request] (:identity request))
 
@@ -40,7 +40,7 @@
     :doc   "Hello Somni example"
     :any   #'hello}
 
-   {:uri    "user/:uid"
+   {:uri    "user/:uid/?"
     :doc    "User management"
     :put    #'new-user
     :delete #'delete-user
