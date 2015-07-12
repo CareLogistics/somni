@@ -30,8 +30,6 @@
   [uid identity db]
   (db :get uid :by identity))
 
-#_(defmethod request->identity :trusting [_ request] (:identity request))
-
 ;;define a test buddy backend
 (defn trusting-backend []
   (reify
