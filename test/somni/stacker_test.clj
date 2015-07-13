@@ -3,7 +3,9 @@
             [schema.core :as s]
             [somni.http.errors :refer [server-error]]
             [somni.middleware.access-control :refer [request->identity]]
-            [somni.stacker :refer :all]))
+            [somni.stacker :refer :all]
+            [somni.middleware.auth.backends :refer :all]
+            [buddy.auth.protocols :as buddy-proto]))
 
 (def +gen-report+
   "adds to acceptable media"
@@ -36,6 +38,18 @@
 (defmethod request->identity :mock [& _] {:user "fred",
                                           :uid 21345,
                                           :roles [:admin]})
+;;mock buddy authentication backend
+(defn mock-backend []
+  (reify
+    buddy-proto/IAuthentication
+    (parse [_ request]
+      {:user "fred",
+       :uid 21345,
+       :roles [:admin]})
+    (authenticate [_ request data]
+      (assoc request :identity data))))
+
+(defmethod get-authn-backend :mock [m] (mock-backend))
 
 (def sample-resource
   {:uri ":report-id/:date"               ; used by router AND sets up wrap-binding

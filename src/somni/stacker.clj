@@ -5,7 +5,9 @@
             [schema.core :as s]
             [somni.middleware.injectors :refer [inject-deps]]
             [somni.middleware.validation :refer [wrap-request-validation]]
-            [somni.middleware.access-control :refer :all]
+            [somni.middleware.access-control :refer [wrap-authorization]]
+            [somni.middleware.auth :refer :all]
+            [somni.middleware.auth.backends :refer :all]
             [somni.middleware.extractions :refer [wrap-extractions]]
             [somni.middleware.auto-doc :refer [wrap-options]]
             [somni.middleware.negotiator :refer [wrap-negotiator]]
@@ -105,7 +107,7 @@
           :always      (wrap-uncaught-exceptions on-error) ; serializable errors
           conneg       (wrap-negotiator)
           (seq acls)   (wrap-authorization acls)
-          auth         (wrap-authentication auth deps)
+          auth         (wrap-authentication (get-authn-backend {:type auth}))
           :always      (wrap-trace)
           :always      (wrap-uncaught-exceptions on-error))) ; unserializable errors
 
