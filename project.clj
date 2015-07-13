@@ -8,6 +8,7 @@
                  [prismatic/schema "0.4.0"]
                  [ring/ring-core "1.3.2"]
                  [liberator "0.13"]
-                 [camel-snake-kebab "0.3.2"]]
+                 [camel-snake-kebab "0.3.2"]
+                 [buddy/buddy-auth "0.6.0"]]
 
   :plugins [[lein-immutant "2.0.0"]])
