@@ -14,3 +14,11 @@ pom.xml.asc
 .class*
 .project*
 .nrepl-history
+
+# IntelliJ files
+*.ids
+*.iml
+*.ipr
+*.iws
+.idea/
+

@@ -1,22 +1,13 @@
 (ns somni.middleware.access-control-test
-  (:require [somni.middleware.access-control :refer :all]
+  (:require [somni.middleware.access-control :refer [wrap-authorization]]
             [clojure.test :refer :all]))
 
 (def ^:private test-user {:user 'test, :roles [:admin]})
-
-(defmethod request->identity :test [& _] test-user)
 
 (defn- h [{:as request :keys [identity]}]
   (if (= identity test-user)
     {:status 200}
     (throw (ex-info "Missing user identity" {}))))
-
-(deftest wrap-authentication-test
-  (is (= test-user (:identity ((wrap-authentication h :test) {})))
-      "Authenticated requests retain identity through request & response")
-
-  (is (= 401 (:status ((wrap-authentication h :ssl) {})))
-      "Unknown auth-types produce not-authenticated"))
 
 (def test-req {:request-method :get
                :identity test-user})
