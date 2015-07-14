@@ -50,17 +50,6 @@
   (when (renderable? {:media-type media-type})
     (alter-var-root *default-media-type* (fn [_] media-type))))
 
-(def ^:dynamic *json-naming-style* ->snake_case)
-
-(def supported-name-styles
-  {:snake ->snake_case :camel ->camelCase :kebab ->kebab-case :pascal ->PascalCase})
-
-(defn set-json-case!
-  [style]
-  {:pre [(supported-name-styles style)]}
-  (alter-var-root *json-naming-style*
-                  (fn [_] (supported-name-styles style))))
-
 (defn- key-fn
   [x]
   (cond
@@ -80,7 +69,7 @@
   (as-response [this context]
     (as-response (render-map-generic this context) context)))
 
-(defn- json-write [data] (json/write-str data :key-fn (comp *json-naming-style* key-fn)))
+(defn json-write [data] (json/write-str data :key-fn (comp ->camelCase key-fn)))
 
 (defmethod render-map-generic "application/json" [data context] (json-write data))
 (defmethod render-seq-generic "application/json" [data context] (json-write data))
