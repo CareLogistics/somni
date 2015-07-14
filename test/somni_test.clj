@@ -1,7 +1,6 @@
 (ns somni-test
   (:require [clojure.test :refer :all]
             [schema.core :as s]
-            [somni.middleware.access-control :refer [request->identity]]
             [somni :refer :all]
             [somni.middleware.auth.backends :refer :all]
             [buddy.auth.protocols :as buddy-proto]))

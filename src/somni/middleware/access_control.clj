@@ -4,33 +4,6 @@
             [somni.misc :refer [by-tag]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; authentication
-(defmulti request->identity by-tag)
-
-(defmethod request->identity :default [& _] nil)
-
-(defn wrap-authentication
-  "..."
-  ([handler auth-provider deps]
-
-   {:pre [(ifn? handler)
-          (or (get-method request->identity auth-provider)
-              (get deps auth-provider))]}
-
-   (let [authenticate (or (some-> ((methods request->identity) auth-provider)
-                                  (partial auth-provider))
-                          (get deps auth-provider (constantly nil)))]
-
-     (fn [request]
-       (if-some [id (authenticate request)]
-         (-> request (assoc :identity id)
-             handler (assoc :identity id))
-         (not-authenticated request)))))
-
-  ([handler auth-provider]
-   (wrap-authentication handler auth-provider {})))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; authorization
 (defn- get-roles [req] (get-in req [:identity :roles]))
 

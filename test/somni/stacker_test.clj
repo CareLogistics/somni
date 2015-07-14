@@ -2,7 +2,6 @@
   (:require [clojure.test :refer :all]
             [schema.core :as s]
             [somni.http.errors :refer [server-error]]
-            [somni.middleware.access-control :refer [request->identity]]
             [somni.stacker :refer :all]
             [somni.middleware.auth.backends :refer :all]
             [buddy.auth.protocols :as buddy-proto]))
@@ -35,9 +34,6 @@
     [:delete-report report-id date [:user user]]
     [:delete-report-template report-id [:user user]]))
 
-(defmethod request->identity :mock [& _] {:user "fred",
-                                          :uid 21345,
-                                          :roles [:admin]})
 ;;mock buddy authentication backend
 (defn mock-backend []
   (reify
