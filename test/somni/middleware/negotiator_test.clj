@@ -29,7 +29,7 @@
 
   (is (= (wrapped-1 test-req)
          {:headers {"Content-Type" "application/json;charset=UTF-8"},
-          :body "{\"add_result\":10}"})
+          :body "{\"addResult\":10}"})
       "Correct response returned"))
 
 (def wrapped-2
@@ -43,7 +43,7 @@
                             :headers {"accept" "*/*"
                                       "content-type" "application/json"
                                       "content-length" 28}})
-         {:body "{\"alpha_beta\":1,\"beta_max\":2}",
+         {:body "{\"alphaBeta\":1,\"betaMax\":2}",
           :headers {"Content-Type" "application/json;charset=UTF-8",
                     :deserialized {:alpha-beta 1,
                                    :beta-max   2}}})))

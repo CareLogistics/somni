@@ -1,8 +1,6 @@
 (ns somni.router
-  "
-  A simple routing library based upon a trie.  Supports wildcards & keyword
-  wildcards.
-  "
+  "A simple routing library based upon a trie.  Supports wildcards & keyword
+  wildcards."
   (:require [clojure.string :as str]
             [somni.misc :refer :all]
             [somni.http.errors :refer [not-found
@@ -11,6 +9,8 @@
 (defn wildcards->globs
   [uri]
   (str/replace uri #"[:$][^\/]+(\/\?$)?|\?$" "*"))
+
+(defn- glob-path? [path] (when (= (last path) "*") (butlast path)))
 
 (defn- has-route?
   "determine if a router has an exact match for a route"
@@ -22,13 +22,27 @@
     (string? p) (uri->path (wildcards->globs p))
     (coll?   p) (map wildcards->globs p)))
 
+(defn- routing-conflict! [router path]
+  (throw (ex-info "Routing conflict" {:path path :router router})))
+
 (defn add-route
   "add a new route handler to a router"
   ([router op path handler]
-   (let [path (->path path)]
-     (if-some [existing (has-route? router op path)]
-       (throw (ex-info "Routing conflict" {:existing existing}))
-       (assoc-in router (concat path [op]) handler))))
+   (let [path  (->path path)
+         gpath (glob-path? path)]
+
+     (cond-> router
+       (has-route? router op path)
+       (routing-conflict! path)
+
+       path
+       (assoc-in (concat path [op]) handler)
+
+       (and gpath (has-route? router op gpath))
+       (routing-conflict! gpath)
+
+       gpath
+       (assoc-in (concat gpath [op]) handler))))
 
   ([router [op path handler]] (add-route router op path handler)))
 

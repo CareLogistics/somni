@@ -4,7 +4,8 @@
             [somni.middleware.access-control :refer [request->identity]]
             [somni :refer :all]))
 
-(defn hello [name body db]
+(defn hello [r name body db]
+  (prn r)
   (cond
    body body
    name (db "Hello " name)
@@ -32,13 +33,9 @@
 
 (def sample-resources
   [
-   {:uri   "hello/:name"
-    :doc   "Hello Somni example"
-    :any   #'hello}
-
-   {:uri   "hello"
-    :doc   "Hello Somni example"
-    :any   #'hello}
+   {:uri "hello/:name"
+    :doc "Hello Somni example"
+    :any #'hello}
 
    {:uri    "user/:uid/?"
     :doc    "User management"

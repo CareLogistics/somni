@@ -15,7 +15,7 @@
                :when (= (str v) i)]
            [m t])))
 
-(defn- extract
+(defn extract
   ([] nil)
   ([obj xpath]
    (cond

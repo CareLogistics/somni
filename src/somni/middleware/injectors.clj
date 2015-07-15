@@ -3,7 +3,13 @@
 
 (defn- names->symbols [m] (->map (map-first (comp symbol name) m)))
 
-(defn- arglists [var] (:arglists (meta var)))
+(defn- arglists [var]
+  (for [arglist (:arglists (meta var))]
+    (for [x arglist]
+      (cond
+        (symbol? x) x
+        (map? x) (:as x)
+        (coll? x) (second (drop-while #(not= :as %) x))))))
 
 (defn- best-match
   "Best matched is shortest arglist that is most fully satisfied."
@@ -27,28 +33,20 @@
       ([m2] (partial-from-map f-var (merge m-args m2)))
       ([] (apply f-var (best-match (arglists f-var) m-args))))))
 
-(defn- duplicate-as
-  ([k & as]
-   (fn [m]
-     (when-some [v (m k)]
-       (reduce #(assoc %1 %2 v) {} as)))))
-
-(defn- lift-values [k]
-  (fn [r]
-    (let [z (r k)]
-      (when (map? z) z))))
+(defn- merge-non-nil
+  [& maps]
+  (let [acc (transient (hash-map))]
+    (doseq [m maps :when (map? m),
+            e m :when (val e)]
+      (conj! acc e))
+    (persistent! acc)))
 
 (defn- request->deps
-  [request]
-  (reduce #(merge (%2 %1) %1)
-          request
-          [(fn [r] (assoc r :request r, :req r, :r r))
-           (duplicate-as :body :data :payload :entity)
-           (lift-values :identity)      ; highest precedence
-           (lift-values :bindings)
-           (lift-values :body)
-           (lift-values :params)
-           (lift-values :query-params)])) ; lowest precedence
+  [{:as request
+    :keys [identity bindings body params query-params headers]}]
+  (assoc (merge-non-nil query-params params body bindings identity)
+         :request request :req request :r request :headers headers
+         :data body :payload body :entity body))
 
 (defn context-aware
   [x]
