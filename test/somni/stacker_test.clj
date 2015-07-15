@@ -85,10 +85,12 @@
          expected-described-resource)))
 
 (deftest stack-middleware-test
-  (let [sm (#'somni.stacker/configure-handler expected-described-resource :delete {} [] identity)
+  (let [sm (#'somni.stacker/configure-handler
+            expected-described-resource :delete {} [] identity)
+
         test-req {:uri "wolf-parade/today"
-                  :request-method :delete
-                  :headers {"Accept" "*/*"}}]
+                  :request-method :delete}]
+
     (is (= (:body (sm test-req))
            "[\"delete-report\",\"wolf-parade\",\"today\",[\"user\",\"fred\"]]"))
 
@@ -96,12 +98,11 @@
            "[\"delete-report-template\",\"matzah\",[\"user\",\"fred\"]]"))))
 
 (deftest error-test
-  (let [sm (#'somni.stacker/configure-handler expected-described-resource :get {} [] server-error)
-        test-req {:uri "wolf-parade/today"
-                  :request-method :get
-                  :headers {"Accept" "*/*"}}]
+  (let [sm (#'somni.stacker/configure-handler
+            expected-described-resource :get {} [] server-error)
 
-    (prn (sm test-req))
+        test-req {:uri "wolf-parade/today"
+                  :request-method :get}]
 
     (is (= (:status (sm test-req))
            500))))
