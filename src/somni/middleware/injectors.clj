@@ -44,7 +44,7 @@
 (defn- request->deps
   [{:as request
     :keys [identity bindings body params query-params headers]}]
-  (assoc (merge-non-nil query-params params body bindings identity)
+  (assoc (merge-non-nil request query-params params body bindings identity)
          :request request :req request :r request :headers headers
          :data body :payload body :entity body))
 
