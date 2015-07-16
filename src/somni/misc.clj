@@ -5,12 +5,6 @@
             [ring.util.codec :refer [url-decode]]
             [camel-snake-kebab.core :refer [->kebab-case]]))
 
-(defn by-tag
-  "For use when dispatching on a tagged tuple"
-  [tag & _] tag)
-
-(defmacro meta' [f] `(meta #'~f))
-
 (defn thunk? [x]
   (or (instance? clojure.lang.IFn x)
       (instance? clojure.lang.IDeref x)))
@@ -20,29 +14,9 @@
 (extend-type clojure.lang.Fn     Unthunk (unthunk [x] (x)))
 (extend-type Object              Unthunk (unthunk [x]  x))
 
-(defn non-empty? [x] (and (coll? x) (seq x) x))
-
-(defn map-first [f xs] (map (fn [[a & b]] (cons (f a) b)) xs))
-
 (defn uri->path [uri] (remove empty? (str/split (or uri "") #"/")))
 
 (defn desc [a b] (compare b a))
-
-(defn flip [f] (fn [& args] (apply f (reverse args))))
-
-(defn map-init
-  ([f ks] (reduce #(assoc %1 %2 (f %2)) {} ks))
-  ([ks] (map-init (constantly nil) ks)))
-
-(defn ->map [col] (reduce (fn [a [k v]] (assoc a k v)) {} col))
-
-(defn get-header
-  ([request header default]
-   (or (get-in request [:headers header])
-       (get-in request [:headers (str/lower-case header)])
-       default))
-  ([request header]
-   (get-header request header nil)))
 
 (def ^:private clj-data #{ \{ \[ \( })
 

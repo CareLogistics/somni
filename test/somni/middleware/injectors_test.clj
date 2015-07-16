@@ -3,7 +3,6 @@
             [clojure.test :refer :all]))
 
 (defn a [foo bar baz quux]
-  (prn foo bar baz quux)
   (+ foo bar baz quux))
 
 (def ^:private pfm #'somni.middleware.injectors/partial-from-map)

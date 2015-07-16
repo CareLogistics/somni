@@ -15,8 +15,6 @@
             [somni.router :as router]
             [somni.stacker :as stacker]))
 
-(def somni-schema [stacker/resource-schema])
-
 (defn add-prefix
   [resources prefix]
   (if prefix
@@ -33,7 +31,8 @@
     :or {on-error  #(server-error % dev-mode)
          on-missing not-found}}]
 
-  (s/validate somni-schema resources)
+  {:pre [(seq resources)
+         (map? deps)]}
 
   (let [resources (add-prefix resources uri-prefix)
         stack-fn #(stacker/stack % deps

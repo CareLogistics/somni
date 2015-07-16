@@ -1,7 +1,6 @@
 (ns somni-test
   (:require [clojure.test :refer :all]
             [schema.core :as s]
-            [somni.middleware.access-control :refer [request->identity]]
             [somni :refer :all]))
 
 (defn hello [r name body db]
@@ -29,8 +28,6 @@
   [uid identity db]
   {:user (assoc identity :uid (db uid))})
 
-(defmethod request->identity :trusting [_ request] (:identity request))
-
 (def sample-resources
   [
    {:uri "hello/:name"
@@ -41,17 +38,11 @@
     :doc    "User management"
     :put    #'new-user
     :delete #'delete-user
-    :get    #'get-user
-    :authentication :trusting
-    :authorization {:get    #{:admin :user}
-                    :delete #{:admin}
-                    :put    #{:admin}}}
+    :get    #'get-user}
 
    {:uri   "user"
     :doc   "Add a user, with server generated uid"
-    :post  #'new-user
-    :authentication :trusting
-    :authorization {:post #{:admin}}}])
+    :post  #'new-user}])
 
 (deftest somni-tests
   (let [somni-handler (build sample-resources {:db str})]
@@ -63,16 +54,6 @@
            (:body (somni-handler {:uri "hello/Philip J. Fry"
                                   :request-method :get})))
         "Basic handler test")
-
-    (is (= 401
-           (:status (somni-handler {:uri "user", :request-method :post})))
-        "Authentication failure test")
-
-    (is (= 403
-           (:status (somni-handler {:uri "user",
-                                    :request-method :post
-                                    :identity {:user "pete",}})))
-        "Authorization failure test")
 
     (is (= 400
            (:status (somni-handler {:uri "user",

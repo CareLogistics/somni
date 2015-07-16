@@ -2,7 +2,6 @@
   (:require [clojure.test :refer :all]
             [schema.core :as s]
             [somni.http.errors :refer [server-error]]
-            [somni.middleware.access-control :refer [request->identity]]
             [somni.stacker :refer :all]))
 
 (def +gen-report+
@@ -33,10 +32,6 @@
     [:delete-report report-id date [:user user]]
     [:delete-report-template report-id [:user user]]))
 
-(defmethod request->identity :mock [& _] {:user "fred",
-                                          :uid 21345,
-                                          :roles [:admin]})
-
 (def sample-resource
   {:uri ":report-id/:date"               ; used by router AND sets up wrap-binding
    :doc "This doc is for the URI" ; additional docs collected from handlers
@@ -44,16 +39,8 @@
    ;; per handler dependencies determine by functions arglists
    ;; below is also used by router
    :get    #'sample-getter           ; combine these to generate
-   :put    #'sample-putter           ; maximum possible supported-methods
    :post   #'sample-putter           ; for this URI
-   :delete #'sample-deleter
-
-   ;; no security information added to auto-docs
-   :authentication :mock                ; sets up wrap-authentication
-   :disabled-methods [:put]             ; sets up wrap-supported-methods
-   :authorization {:get #{:admin :anonymous}    ; sets up wrap-authorization
-                   :post #{:admin}
-                   :delete #{:admin}}})
+   :delete #'sample-deleter})
 
 (def expected-described-resource
   {:uri ":report-id/:date"
@@ -72,13 +59,7 @@
 
    :delete {:handler #'somni.stacker-test/sample-deleter
             :doc "Delete existing report template.  Report history is not deleted."
-            :arglists '([user report-id date])}
-
-   :authentication :mock
-   :disabled-methods [:put]
-   :authorization {:get #{:admin :anonymous}
-                   :post #{:admin}
-                   :delete #{:admin}}})
+            :arglists '([user report-id date])}})
 
 (deftest describe-resource-test
   (is (= (#'somni.stacker/describe-resource sample-resource)
@@ -89,7 +70,8 @@
             expected-described-resource :delete {} [] identity)
 
         test-req {:uri "wolf-parade/today"
-                  :request-method :delete}]
+                  :request-method :delete
+                  :identity {:user "fred"}}]
 
     (is (= (:body (sm test-req))
            "[\"delete-report\",\"wolf-parade\",\"today\",[\"user\",\"fred\"]]"))

@@ -1,7 +1,15 @@
 (ns somni.middleware.injectors
-  (:require [somni.misc :refer [unthunk desc map-first ->map]]))
+  (:require [somni.misc :refer [unthunk desc]]))
 
-(defn- names->symbols [m] (->map (map-first (comp symbol name) m)))
+(defn- get-name [x]
+  (cond
+    (instance? clojure.lang.Named x) (name x)
+    (string? x) x
+    :else nil))
+
+(defn- names->symbols [m]
+  (into {} (for [[k v] m :let [n (get-name k)] :when n]
+             [(symbol n) v])))
 
 (defn- arglists [var]
   (for [arglist (:arglists (meta var))]
@@ -43,11 +51,11 @@
 
 (defn- request->deps
   [{:as request
-    :keys [identity bindings body params query-params headers]}]
+    :keys [identity bindings body params query-params]}]
   (cond-> (merge-non-nil query-params params body bindings identity)
     :always (assoc :request request :req request :r request)
-    headers (assoc :headers headers)
-    body    (assoc :data body :payload body :entity body)))
+    body    (assoc :data body :payload body :entity body)
+    :always (merge request)))
 
 (defn context-aware
   [x]
