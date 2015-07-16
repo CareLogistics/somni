@@ -2,26 +2,30 @@
   (:require [clojure.string :as str]
             [somni.misc :refer [uri->path]]))
 
-(defn- extract-map
-  [m [h & t]]
-  (first (for [[k v] m :when (= (name k) h)] [v t])))
-
-(defn- extract-col
-  [col [h i & t]]
-  (first (for [m col
-               :let [m (if (map? m) m (bean m))]
-               [k v] m
-               :when (= (name k) h)
-               :when (= (str v) i)]
-           [m t])))
-
 (defn extract
   ([] nil)
-  ([obj xpath]
+  ([obj [a & [b & z :as t] :as xpath]]
    (cond
      (empty? xpath) obj
-     (map? obj) (apply extract (extract-map obj xpath))
-     (coll? obj) (apply extract (extract-col obj xpath))
+
+     (nil? obj) obj
+
+     (map? obj) (for [[k v] obj
+                      :when (= (name k) a)
+                      x (extract v t)]
+                  x)
+
+     (coll? obj) (flatten (for [i obj
+                                :let [m (if (map? i) i (bean i))]
+                                [k v] m
+                                :when (= (name k) a)
+                                :let [x (if b
+                                          (when (= (str v) b)
+                                            (extract m z))
+                                          (extract v t))]
+                                :when x]
+                            (if (coll? x) x [x])))
+
      :else (extract (bean obj) xpath))))
 
 (defn- wrap-extractions*
