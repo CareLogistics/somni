@@ -14,7 +14,9 @@
 (extend-type clojure.lang.Fn     Unthunk (unthunk [x] (x)))
 (extend-type Object              Unthunk (unthunk [x]  x))
 
-(defn uri->path [uri] (remove empty? (str/split (or uri "") #"/")))
+(defn uri->path [uri] (->> (str/split (or uri "") #"/")
+                           (map ->kebab-case)
+                           (remove empty?)))
 
 (defn desc [a b] (compare b a))
 
