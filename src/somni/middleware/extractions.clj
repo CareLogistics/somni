@@ -1,39 +1,44 @@
 (ns somni.middleware.extractions
-  (:require [clojure.string :as str]
+  (:require [camel-snake-kebab.core :refer [->kebab-case]]
+            [clojure.string :as str]
             [somni.misc :refer [uri->path]]))
 
-(defn extract
-  ([] nil)
-  ([obj [a & [b & z :as t] :as xpath]]
-   (cond
-     (empty? xpath) obj
+(defn- extract*
+  [obj [a & [b & z :as t] :as xpath]]
+  (cond
+    (empty? xpath) [obj]
 
-     (nil? obj) obj
+    (nil? obj) []
 
-     (map? obj) (for [[k v] obj
+    (map? obj) (for [[k v] obj
+                     :when (= (name k) a)
+                     x (extract* v t)]
+                 x)
+
+    (coll? obj) (for [i obj
+                      :let [m (if (map? i) i (bean i))]
+                      [k v] m
                       :when (= (name k) a)
-                      x (extract v t)]
+                      x (if (and b (= (str v) b))
+                          (extract* m z)
+                          (extract* v t))]
                   x)
 
-     (coll? obj) (flatten (for [i obj
-                                :let [m (if (map? i) i (bean i))]
-                                [k v] m
-                                :when (= (name k) a)
-                                :let [x (if b
-                                          (when (= (str v) b)
-                                            (extract m z))
-                                          (extract v t))]
-                                :when x]
-                            (if (coll? x) x [x])))
+    :else (extract* (bean obj) xpath)))
 
-     :else (extract (bean obj) xpath))))
+(defn extract
+  [obj xpath]
+  (when-some [r (extract* obj xpath)]
+    (if (coll? r)
+      (when (seq r) r)
+      r)))
 
 (defn- wrap-extractions*
   [handler skip-fn]
   (fn [{:as request :keys [uri path request-method]}]
     (let [response (handler request)]
       (if (= :get request-method)
-        (extract response (skip-fn (or path (uri->path uri))))
+        (extract response (map ->kebab-case (skip-fn (or path (uri->path uri)))))
         response))))
 
 (defn- mk-skip-fn [uri]
