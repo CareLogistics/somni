@@ -12,6 +12,12 @@
             [clojure.string :as str]
             [somni.misc :refer [uri->path]]))
 
+(defn- key-match [k [h]] (= (name k) h))
+
+(defn- val-match [v [_ b]] (and b (= (str v) b)))
+
+(defn- as-map [x] (if (map? x) x (bean x)))
+
 (defn- extract*
   [obj xpath]
   (cond
@@ -20,19 +26,19 @@
     (nil? obj) []
 
     (map? obj) (for [[k v] obj
-                     :when (= (name k) (first xpath))
+                     :when (key-match k xpath)
                      x (extract* v (next xpath))]
                  x)
 
-    (coll? obj) (for [i obj
-                      :let [m (if (map? i) i (bean i))]
-                      [k v] m
-                      :when (= (name k) (first xpath))
-                      :let [b (second xpath)]
-                      x (if (and b (= (str v) b))
-                          (extract* m (drop 2 xpath))
-                          (extract* v (next xpath)))]
-                  x)
+    (coll? obj) (distinct
+                 (flatten
+                  (for [i obj
+                        :let [m (as-map i)]
+                        [k v] m
+                        :when (key-match k xpath)]
+                    (if (val-match v xpath)
+                      (extract* [m] (drop 2 xpath))
+                      (extract*  v  (drop 1 xpath))))))
 
     :else (extract* (bean obj) xpath)))
 
