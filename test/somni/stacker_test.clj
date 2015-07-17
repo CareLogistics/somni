@@ -67,7 +67,7 @@
 
 (deftest stack-middleware-test
   (let [sm (#'somni.stacker/configure-handler
-            expected-described-resource :delete {} [] identity)
+            expected-described-resource :delete {} identity)
 
         test-req {:uri "wolf-parade/today"
                   :request-method :delete
@@ -81,7 +81,7 @@
 
 (deftest error-test
   (let [sm (#'somni.stacker/configure-handler
-            expected-described-resource :get {} [] server-error)
+            expected-described-resource :get {} server-error)
 
         test-req {:uri "wolf-parade/today"
                   :request-method :get}]
