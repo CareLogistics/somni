@@ -46,7 +46,7 @@
   [obj xpath]
   (when-some [r (extract* obj xpath)]
     (if (coll? r)
-      (when (seq r) r)
+      (when (seq r) (flatten r))
       r)))
 
 (defn- wrap-extractions*

@@ -17,7 +17,7 @@
     (is (= (h {:request-method :get
                :uri "foo/bar"
                :foo {:bar [1 2 3 4]}})
-           [[1 2 3 4]])
+           [1 2 3 4])
         "extraction works on maps")
 
     (is (= (vec (h {:request-method :get
