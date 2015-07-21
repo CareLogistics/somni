@@ -37,7 +37,8 @@
        (sort-by (comp count first))
        (sort-by (comp count second) desc)
        (ffirst)
-       (map m-args)))
+       (map m-args)
+       (map (fnil identity (:body m-args)))))
 
 (defn- partial-from-map
   "Partially applies a function with arguments matched by name from
@@ -91,8 +92,8 @@
 
 (defn inject-deps
   "Applies handler args by name from request & dependencies.  Dependencies
-  that are wrapped in request-aware will be passed the request through function
-  invocation prior to the dependency being passed to the handler.
+  that are wrapped in request-aware will be passed the request through
+  function invocation prior to the dependency being passed to the handler.
 
   This enables using non-ring aware functions as ring handlers.  For example,
     (defn say [uri db] (db uri))

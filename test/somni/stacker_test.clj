@@ -4,22 +4,14 @@
             [somni.http.errors :refer [server-error]]
             [somni.stacker :refer :all]))
 
-(def +gen-report+
-  "adds to acceptable media"
-  {:produces ["image/png" "image/svg" "image/pdf"]})
-
-(defn ^+gen-report+
+(defn ^{:produces ["image/png" "image/svg" "image/pdf"]}
   sample-getter
   "Generates report for date"
   [report-id date]
   (ex-info "Report not found" {:report-id report-id, :date date}))
 
-(def +new-report+
-  "adds to supported media & sets up schema"
-  {:schema {:foo :baz}
-   :consumes ["application/docx" "image/pdf" "application/odfx"]})
-
-(defn ^+new-report+
+(defn ^{:consumes ["application/docx" "image/pdf" "application/odfx"],
+        :schema {:foo :baz}}
   sample-putter
   "Create new report template"
   [body]
@@ -33,13 +25,13 @@
     [:delete-report-template report-id [:user user]]))
 
 (def sample-resource
-  {:uri ":report-id/:date"               ; used by router AND sets up wrap-binding
+  {:uri ":report-id/:date"     ; used by router AND sets up wrap-binding
    :doc "This doc is for the URI" ; additional docs collected from handlers
 
    ;; per handler dependencies determine by functions arglists
    ;; below is also used by router
-   :get    #'sample-getter           ; combine these to generate
-   :post   #'sample-putter           ; for this URI
+   :get    #'sample-getter              ; combine these to generate
+   :post   #'sample-putter              ; for this URI
    :delete #'sample-deleter})
 
 (def expected-described-resource
@@ -58,7 +50,7 @@
          :produces ["image/png" "image/svg" "image/pdf"]}
 
    :delete {:handler #'somni.stacker-test/sample-deleter
-            :doc "Delete existing report template.  Report history is not deleted."
+            :doc "Delete existing report template.  Report history is not deleted.",
             :arglists '([user report-id date])}})
 
 (deftest describe-resource-test

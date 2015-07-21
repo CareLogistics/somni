@@ -22,6 +22,9 @@
         :when f]
     [i (keyword k) f]))
 
+(defn get-path-params [uri]
+  (map second (get-binding-info uri)))
+
 (defn- wrap-bindings*
   [handler bindings]
   (fn [{:as request :keys [uri]}]

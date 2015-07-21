@@ -20,9 +20,7 @@
 
 (def ops #{:get :put :post :delete :any})
 
-(def merged-tags #{:schema :consumes :produces})
-
-(def merged-meta #{:doc :arglists})
+(def merged-meta #{:doc :arglists :schema :consumes :produces})
 
 (defn- describe-resource
   [resource]
@@ -31,15 +29,13 @@
          (string? (:uri resource))
          (some resource ops)]}
 
-  (let [handlers (for [op ops
-                       :let [handler (resource op)
-                             h-meta (meta handler)]
-                       :when handler]
-
-                   [op (merge
-                        (into {} (filter (comp merged-tags key) (:tag h-meta)))
-                        (into {} (filter (comp merged-meta key) h-meta))
-                        {:handler handler})])]
+  (let [handlers
+        (for [op ops
+              :let [handler (resource op)]
+              :when handler]
+          [op (assoc
+               (into {} (filter (comp merged-meta key) (meta handler)))
+               :handler handler)])]
 
     (reduce (fn [rd [op desc]] (assoc rd op desc))
             (apply dissoc resource ops)

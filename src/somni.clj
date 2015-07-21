@@ -23,17 +23,17 @@
 
 (defn build
   [resources deps &
-   {:keys [on-missing on-error uri-prefix dev-mode]
-    :or {on-error  #(server-error % dev-mode)
-         on-missing not-found}}]
+   {:keys [on-missing on-error uri-prefix dev-mode]}]
 
   {:pre [(seq resources)
          (map? deps)]}
 
-  (let [resources (add-prefix resources uri-prefix)
-        stack-fn #(stacker/stack % deps on-error)
-        stacked   (mapcat stack-fn resources)
-        router    (router/add-routes {} stacked)
-        handler   (router/router->handler router)]
+  (let [on-error   (or on-error #(server-error % dev-mode))
+        on-missing (or on-missing not-found)
+        resources  (add-prefix resources uri-prefix)
+        stack-fn  #(stacker/stack % deps on-error)
+        stacked    (mapcat stack-fn resources)
+        router     (router/add-routes {} stacked)
+        handler    (router/router->handler router)]
 
     handler))

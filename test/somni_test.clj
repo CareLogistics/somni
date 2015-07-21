@@ -10,9 +10,9 @@
    name (db "Hello " name)
    :else "Hello from Somni"))
 
-(def +new-user+ {:schema {:username s/Str}})
+(def User {:username s/Str})
 
-(defn ^+new-user+ new-user
+(defn ^{:schema User} new-user
   "Creates a new user with uid"
   ([uid body identity db]
    (db :new uid :username (:username body) :by identity))
