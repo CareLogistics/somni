@@ -16,9 +16,9 @@
             [somni.stacker :as stacker]
             [somni.swagger :refer [swagger-api]]))
 
-(def add-prefix* (partial format "/%s/%s"))
+(defn- add-prefix* [prefix uri] (str "/" prefix "/" uri))
 
-(defn add-prefix
+(defn- add-prefix
   [resources prefix]
   (if prefix
     (map #(update-in % [:uri] (partial add-prefix* prefix)) resources)
@@ -39,7 +39,7 @@
         router     (router/add-route
                     (router/add-routes {} stacked)
                     :get
-                    (add-prefix* uri-prefix "swagger-json")
+                    (add-prefix* uri-prefix "swagger.json")
                     (swagger-api resources))
         handler    (router/router->handler router)]
 

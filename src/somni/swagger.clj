@@ -53,8 +53,13 @@
 
 (defn swagger-api
   [resources]
-  (let [json (-> (resources->swagger resources)
-                 (rs/swagger-json))]
-    (fn [_] {:status 200
-            :body json
+  (let [json (render-map-generic
+              (-> (resources->swagger resources)
+                  (rs/swagger-json))
+              {:representation
+               {:media-type "application/json"
+                :charset "UTF-8"}})]
+
+    (fn [_] {:status 200,
+            :body  json                 ; cached indefinitely
             :headers {"Content-Type" "application/json"}})))
