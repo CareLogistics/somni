@@ -55,4 +55,6 @@
   [resources]
   (let [json (-> (resources->swagger resources)
                  (rs/swagger-json))]
-    (fn [_] json)))
+    (fn [_] {:status 200
+            :body json
+            :headers {"Content-Type" "application/json"}})))

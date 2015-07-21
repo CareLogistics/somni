@@ -13,12 +13,15 @@
                                        not-found]]
             [somni.middleware.exceptions :refer [wrap-uncaught-exceptions]]
             [somni.router :as router]
-            [somni.stacker :as stacker]))
+            [somni.stacker :as stacker]
+            [somni.swagger :refer [swagger-api]]))
+
+(def add-prefix* (partial format "/%s/%s"))
 
 (defn add-prefix
   [resources prefix]
   (if prefix
-    (map #(update-in % [:uri] (partial str prefix "/")) resources)
+    (map #(update-in % [:uri] (partial add-prefix* prefix)) resources)
     resources))
 
 (defn build
@@ -33,7 +36,11 @@
         resources  (add-prefix resources uri-prefix)
         stack-fn  #(stacker/stack % deps on-error)
         stacked    (mapcat stack-fn resources)
-        router     (router/add-routes {} stacked)
+        router     (router/add-route
+                    (router/add-routes {} stacked)
+                    :get
+                    (add-prefix* uri-prefix "swagger-json")
+                    (swagger-api resources))
         handler    (router/router->handler router)]
 
     handler))
