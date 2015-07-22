@@ -19,10 +19,11 @@
   [uri]
   (str/replace uri #"[:$][^\/]+(\/\?$)?|\?$" "*"))
 
-(defn- glob-path? [path] (when (= (last path) "*") (butlast path)))
+(defn- greedy-path?
+  [path]
+  (when (= "*" (last path)) (butlast path)))
 
 (defn- has-route?
-  "determine if a router has an exact match for a route"
   [router op path]
   (op (get-in router path)))
 
@@ -31,27 +32,19 @@
     (string? p) (uri->path (wildcards->globs p))
     (coll?   p) (map wildcards->globs p)))
 
-(defn- routing-conflict! [router path]
-  (throw (ex-info "Routing conflict" {:path path :router router})))
+(defn- assoc-route [router op path handler]
+  (if (has-route? router op path)
+    (throw (ex-info "Routing conflict" {:router router :op op :path path}))
+    (assoc-in router (concat path [op]) handler)))
 
 (defn add-route
   "add a new route handler to a router"
   ([router op path handler]
    (let [path  (->path path)
-         gpath (glob-path? path)]
-
-     (cond-> router
-       (has-route? router op path)
-       (routing-conflict! path)
-
-       path
-       (assoc-in (concat path [op]) handler)
-
-       (and gpath (has-route? router op gpath))
-       (routing-conflict! gpath)
-
-       gpath
-       (assoc-in (concat gpath [op]) handler))))
+         gpath (greedy-path? path)]
+     (if gpath
+       (assoc-route router op gpath [::cut handler])
+       (assoc-route router op  path  handler))))
 
   ([router [op path handler]] (add-route router op path handler)))
 
@@ -77,16 +70,17 @@
          fall-back  nil]
 
     (let [matched   (get router h)
-
-          fall-back (when-not matched (or (get router "*")
-                                          fall-back))
+          fall-back (when-not matched (or (get router "*") fall-back))
           router    (or matched fall-back)
-          handler   (op router)]
+          handler   (op router)
+          cut (when (and (coll? handler)
+                         (= ::cut (first handler))) (second handler))]
 
       (cond
-       (and path router) (recur router path fall-back)
-       (nil? path)       (or handler   :no-such-op)
-       (nil? router)     (or fall-back :no-such-path)))))
+        cut              cut
+        (and path router) (recur router path fall-back)
+        (nil? path)       (or handler   :no-such-op)
+        (nil? router)     (or fall-back :no-such-path)))))
 
 (defn router->handler
   "converts a router to a ring handler."

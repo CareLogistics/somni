@@ -33,11 +33,13 @@
     :doc "Hello Somni example"
     :get #'hello}
 
-   {:uri    "user/:uid/?"
-    :doc    "User management"
+   {:uri "user/:uid/?"
+    :get #'get-user}
+
+   {:uri "user/:uid"
+    :doc "User management"
     :put    #'new-user
-    :delete #'delete-user
-    :get    #'get-user}
+    :delete #'delete-user}
 
    {:uri   "user"
     :doc   "Add a user, with server generated uid"

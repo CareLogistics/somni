@@ -54,19 +54,21 @@
      "Remove removes a route")))
 
 (deftest find-handler-test
-  (let [routes '[[:get ["site-map"] site-map-handler]
-                 [:get ["*"] index-page]
-                 [:get ["site-map" "seo" "details"] seo-details]
-                 [:get ["site-map" :user "c"] users-index]
-                 [:get ["page" "*" "visitor" "*" "ad-metrics"] page-visitor-ad-impressions]]
+  (let [routes '[[:get "/site-map" site-map-handler]
+                 [:get "/*" index-page]
+                 [:get "/site-map/seo/details" seo-details]
+                 [:get "/site-map/:user/c" users-index]
+                 [:get "/page/*/visitor/*/ad-metrics" page-visitor-ad-impressions]]
         router (add-routes {} routes)]
 
     (is
-     (= (find-handler router :get ["site-map"]) 'site-map-handler)
+     (= (find-handler router :get ["site-map"])
+        'site-map-handler)
      "Simple top level route")
 
     (is
-     (= (find-handler router :get ["site-map" "seo" "details"]) 'seo-details)
+     (= (find-handler router :get ["site-map" "seo" "details"])
+        'seo-details)
      "Simple multi level route")
 
     (is
@@ -75,7 +77,8 @@
      "Trailing GLOB is a greedy match")
 
     (is
-     (= (find-handler router :get ["site-map" "Andrew" "c" 'users-index]))
+     (= (find-handler router :get ["site-map" "Andrew" "c"
+                                   'users-index]))
      "Non-trailing GLOB will only match specific path segment")
 
     (is
