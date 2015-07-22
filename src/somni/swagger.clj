@@ -1,33 +1,47 @@
 (ns somni.swagger
-  (:require [ring.swagger.swagger2 :as rs]
-            [somni.middleware.negotiator :refer (->clj)]
-            [somni.middleware.bindings :refer (get-path-params)]
+  (:require [camel-snake-kebab.core :refer (->camelCase)]
+            [clojure.string :as str]
             [liberator.representation :refer (render-map-generic)]
-            [schema.core :as s]))
+            [ring.swagger.swagger2 :as rs]
+            [schema.core :as s]
+            [somni.middleware.bindings :refer (get-path-params)]
+            [somni.middleware.negotiator :refer (->clj)]))
 
 (defn dispatch-values [method] (-> (methods method)
                                    (dissoc :default)
                                    (keys)))
 
-(defn consumes [] (dispatch-values ->clj))
+(def ops #{:get :put :post :delete})
 
-(defn produces [] (dispatch-values render-map-generic))
+(defn schema? [x] (satisfies? s/Schema x))
 
-(def ops #{:get :put :post :delete :any})
-
-(defn op->swagger
-  [bindings
-   {:as meta
-    :keys [doc tag consumes produces schema]}]
+(defn- meta->swagger
+  [{:keys [doc tag response consumes produces schema]}]
 
   (cond-> {}
-    doc            (assoc :summary doc)
-    consumes       (assoc :consumes consumes)
-    produces       (assoc :produces produces)
-    (map? tag)     (assoc-in [:parameters :body] tag)
-    schema         (assoc-in [:responses 200 :schema] schema)
-    (seq bindings) (assoc-in [:parameters :path]
-                             (zipmap bindings (repeat s/Str)))))
+    doc                 (assoc :summary doc)
+    consumes            (assoc :consumes consumes)
+    produces            (assoc :produces produces)
+    (schema? response)  (assoc-in [:responses 200 :schema] response)
+    (schema? tag)       (assoc-in [:responses 200 :schema] tag)
+    (schema? schema)    (assoc-in [:parameters :body] schema)))
+
+(defn- bindings->swagger
+  [bindings]
+  (when (seq bindings)
+    {:parameters {:path (zipmap (map ->camelCase bindings)
+                                (repeat s/Str))}}))
+
+(defn- resource->swagger
+  [{:as resource :keys [uri]}]
+
+  (for [op ops
+        :let [handler (op resource)]
+        :when (var? handler)]
+
+    [[uri op] (merge (bindings->swagger (get-path-params uri))
+                     (meta->swagger resource)
+                     (meta->swagger (meta handler)))]))
 
 (defn resources->swagger
   [resources]
@@ -37,19 +51,12 @@
          (every? (comp string? :uri) resources)
          (every? #(some % ops) resources)]}
 
-  {:swagger 2.0
-   :produces (produces)
-   :consumes (consumes)
-   :paths
-   (into {} (for [resource resources
-                  op ops
-                  :let [handler (resource op)
-                        uri (:uri resource)]
-                  :when handler
-                  :when uri]
-              [uri {op (op->swagger
-                        (get-path-params uri)
-                        (meta handler))}]))})
+  {:produces (dispatch-values ->clj)
+   :consumes (dispatch-values render-map-generic)
+   :paths (reduce
+           (fn [a [ks swag]] (assoc-in a ks swag))
+           {}
+           (mapcat resource->swagger resources))})
 
 (defn swagger-api
   [resources]

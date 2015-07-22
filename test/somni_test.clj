@@ -29,10 +29,9 @@
   {:user (assoc identity :uid (db uid))})
 
 (def sample-resources
-  [
-   {:uri "hello/:name"
+  [{:uri "hello/:name"
     :doc "Hello Somni example"
-    :any #'hello}
+    :get #'hello}
 
    {:uri    "user/:uid/?"
     :doc    "User management"

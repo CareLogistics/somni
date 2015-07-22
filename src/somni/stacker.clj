@@ -18,7 +18,7 @@
             [somni.middleware.to-ring :refer [wrap-response-as-ring]]
             [somni.middleware.exceptions :refer [wrap-uncaught-exceptions]]))
 
-(def ops #{:get :put :post :delete :any})
+(def ops #{:get :put :post :delete})
 
 (def merged-meta #{:doc :arglists :schema :consumes :produces})
 

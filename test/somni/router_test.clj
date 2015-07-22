@@ -89,7 +89,7 @@
 
 (deftest router->handler-test
   (let [routes [[:get ["test"]           (fn [_] "test")]
-                [:any ["user" "profile"] (fn [_] "profile")]]
+                [:put ["user" "profile"] (fn [_] "profile")]]
         router  (add-routes {} routes)
         handler (router->handler router (fn [_] "missing"))]
 

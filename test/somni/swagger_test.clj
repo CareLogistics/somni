@@ -18,20 +18,22 @@
   "Doc for sample-fn"
   [{:keys [id name address] :as user}])
 
-(s/defschema Hello {:msg s/Str})
-
-(defn ^Hello hello-api "Hello world" [] "Hello")
+(defn hello-api [] {:msg "Hello"})
 
 (def sample-resources
   [{:uri "/user/:id"
     :post #'sample-fn}
 
    {:uri "/hello/api"
-    :get #'hello-api}])
+    :get #'hello-api
+    :doc "Says hello"
+    :response {:msg s/Str}
+    :consumes ["fat/penguins" "chubby/baby+seals"]
+    :produces ["larger/orca" "rounded/sharks"]}])
 
 (defonce validator
   (scjsv/validator
-   (slurp "https://raw.githubusercontent.com/reverb/swagger-spec/master/schemas/v2.0/schema.json")))
+   (slurp "https://raw.githubusercontent.com/swagger-api/swagger-spec/master/schemas/v2.0/schema.json")))
 
 (deftest test-swagger
   (is (nil? (-> (resources->swagger sample-resources)

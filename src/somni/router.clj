@@ -80,10 +80,8 @@
 
           fall-back (when-not matched (or (get router "*")
                                           fall-back))
-          router    (or matched
-                        fall-back)
-          handler   (or (op   router)
-                        (:any router))]
+          router    (or matched fall-back)
+          handler   (op router)]
 
       (cond
        (and path router) (recur router path fall-back)
