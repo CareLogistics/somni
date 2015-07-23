@@ -62,10 +62,9 @@
 (defn- request->deps
   [{:as request
     :keys [identity bindings body params query-params]}]
-  (cond-> (merge-non-nil query-params params body bindings identity)
-    :always (assoc :request request :req request :r request)
-    body    (assoc :data body :payload body :entity body)
-    :always (merge request)))
+  (-> (merge-non-nil query-params params body bindings identity)
+      (assoc :request request :req request :r request)
+      (merge request)))
 
 (defn context-aware
   [x]

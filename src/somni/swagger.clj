@@ -32,7 +32,7 @@
     {:parameters {:path (zipmap (map ->camelCase bindings)
                                 (repeat s/Str))}}))
 
-(defn- resource->swagger
+(defn resource->swagger
   [{:as resource :keys [uri]}]
 
   (for [op ops
@@ -40,8 +40,8 @@
         :when (var? handler)]
 
     [[uri op] (merge (bindings->swagger (get-path-params uri))
-                     (meta->swagger resource)
-                     (meta->swagger (meta handler)))]))
+                     (meta->swagger (merge resource
+                                           (meta handler))))]))
 
 (defn resources->swagger
   [resources]
@@ -51,8 +51,8 @@
          (every? (comp string? :uri) resources)
          (every? #(some % ops) resources)]}
 
-  {:produces (dispatch-values ->clj)
-   :consumes (dispatch-values render-map-generic)
+  {:produces (dispatch-values render-map-generic)
+   :consumes (dispatch-values ->clj)
    :paths (reduce
            (fn [a [ks swag]] (assoc-in a ks swag))
            {}

@@ -18,7 +18,10 @@
   "Doc for sample-fn"
   [{:keys [id name address] :as user}])
 
-(defn hello-api [] {:msg "Hello"})
+(defn ^{:consumes ["application/eliza"]}
+  hello-api [] {:msg "Hello"})
+
+(def Hello {:msg s/Str})
 
 (def sample-resources
   [{:uri "/user/:id"
@@ -26,16 +29,22 @@
 
    {:uri "/hello/api"
     :get #'hello-api
+    :put #'hello-api
     :doc "Says hello"
-    :response {:msg s/Str}
-    :consumes ["fat/penguins" "chubby/baby+seals"]
-    :produces ["larger/orca" "rounded/sharks"]}])
+    :response Hello
+    :consumes ["overridden/by-meta"]
+    :produces ["application/vnd+excel"]}])
 
 (defonce validator
   (scjsv/validator
    (slurp "https://raw.githubusercontent.com/swagger-api/swagger-spec/master/schemas/v2.0/schema.json")))
 
 (deftest test-swagger
-  (is (nil? (-> (resources->swagger sample-resources)
-                (rs/swagger-json)
-                (validator)))))
+  (let [swag (resources->swagger sample-resources)]
+    (is (nil? (validator (rs/swagger-json swag))))
+
+    (is (= (get-in swag [:paths "/user/:id" :post :parameters :body])
+           User))
+
+    (is (= (get-in swag [:paths "/hello/api" :get :responses 200 :schema])
+           Hello))))
