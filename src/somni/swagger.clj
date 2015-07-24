@@ -35,13 +35,15 @@
 (defn resource->swagger
   [{:as resource :keys [uri]}]
 
-  (for [op ops
-        :let [handler (op resource)]
-        :when (var? handler)]
+  (let [uri (str/replace uri #"\$" ":")]
 
-    [[uri op] (merge (bindings->swagger (get-path-params uri))
-                     (meta->swagger (merge resource
-                                           (meta handler))))]))
+    (for [op ops
+          :let [handler (op resource)]
+          :when (var? handler)]
+
+      [[uri op] (merge (bindings->swagger (get-path-params uri))
+                       (meta->swagger (merge resource
+                                             (meta handler))))])))
 
 (defn resources->swagger
   [resources]
