@@ -38,7 +38,7 @@
        (sort-by (comp count second) desc)
        (ffirst)
        (map m-args)
-       (map (fnil identity (:body m-args)))))
+       (map (fnil identity (get m-args 'body)))))
 
 (defn- partial-from-map
   "Partially applies a function with arguments matched by name from
@@ -101,6 +101,6 @@
   "
   ([handler deps]
    (fn [request]
-     (let [request (request->deps request)
-           deps (with-context request deps)]
-       ((partial-from-map handler (merge request deps)))))))
+     ((partial-from-map handler
+                        (merge (request->deps request)
+                               (with-context request deps)))))))

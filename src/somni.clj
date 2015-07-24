@@ -36,11 +36,12 @@
         resources  (add-prefix resources uri-prefix)
         stack-fn  #(stacker/stack % deps on-error)
         stacked    (mapcat stack-fn resources)
-        router     (router/add-route
-                    (router/add-routes {} stacked)
-                    :get
-                    (add-prefix* uri-prefix "swagger.json")
-                    (swagger-api resources))
-        handler    (router/router->handler router)]
+        router (->> (when dev-mode
+                      [[:get
+                         (add-prefix* uri-prefix "swagger.json")
+                         (swagger-api resources)]])
+                    (concat stacked)
+                    (router/add-routes {}))
+        handler (router/router->handler router)]
 
     handler))
