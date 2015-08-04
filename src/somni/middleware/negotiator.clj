@@ -40,24 +40,48 @@
   (json/read-str body :key-fn (comp keyword ->kebab-case)))
 
 (defn deserializable?
+  [repr]
+  (when-some [des ((methods ->clj) (:media-type repr))]
+    (partial des repr)))
+
+(defn- get-content
   [request]
-  (let [repr (content-type request)]
-    (when-some [des ((methods ->clj) (:media-type repr))]
-      (partial des repr))))
+  (let [content-length (Long. (get-in request [:headers "content-length"] -1))]
+    (when (pos? content-length)
+      (:body request))))
+
+(defn wrap-supported-media
+  ([handler]
+   (wrap-supported-media handler #{}))
+
+  ([handler consumes]
+   {:pre [(set? consumes)]}
+   (fn [request]
+     (let [body       (get-content request)
+           repr       (when body (content-type request))
+           consumable (when repr (consumes (:media-type repr)))
+           des        (when repr (when-not consumable (deserializable? repr)))]
+       (cond
+         (nil? body) (handler request)
+         consumable  (handler request)
+         des         (handler (update-in request [:body] des))
+         :else       (unsupported-media request))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; serialization
-(defn renderable?
-  "Using librarator's representation namespace for response rendering."
-  [repr]
-  ((methods render-map-generic) (:media-type repr)))
+(defn- write-generic [x ^java.io.PrintWriter out]
+  (if (.isArray (class x))
+    (json/-write (seq x) out)
+    (json/-write (pr-str x) out)))
 
-(def ^:dynamic *default-media-type* app-json)
+(extend java.lang.Object
+  json/JSONWriter
+  {:-write write-generic})
 
-(defn set-default-media-type!
-  [media-type]
-  (when (renderable? {:media-type media-type})
-    (alter-var-root *default-media-type* (fn [_] media-type))))
+(extend-type java.util.Map
+  Representation
+  (as-response [this context]
+    (as-response (render-map-generic this context) context)))
 
 (defn- key-fn
   [x]
@@ -66,26 +90,23 @@
    (nil? x) (throw (Exception. "Serialized object properties may not be nil"))
    :else (str x)))
 
-(defn- write-generic [x ^java.io.PrintWriter out]
-  (if (.isArray (class x))
-    (json/-write (seq x) out)
-    (json/-write (pr-str x) out)))
+(defn json-write
+  [data]
+  (json/write-str
+   data
+   :key-fn (comp ->camelCase key-fn)))
 
-(extend java.lang.Object json/JSONWriter {:-write write-generic})
+(defmethod render-map-generic "application/json"
+  [data context]
+  (json-write data))
 
-(extend-type java.util.Map
-  Representation
-  (as-response [this context]
-    (as-response (render-map-generic this context) context)))
+(defmethod render-seq-generic "application/json"
+  [data context]
+  (json-write data))
 
-(defn json-write [data] (json/write-str data :key-fn (comp ->camelCase key-fn)))
-
-(defmethod render-map-generic "application/json" [data context] (json-write data))
-(defmethod render-seq-generic "application/json" [data context] (json-write data))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; functions that deal with ring request
 (def ^:dynamic *wildcard-media-types* #{"*" "*/*" "text/*" "application/*"})
+
+(def ^:dynamic *default-media-type* app-json)
 
 (defn- wildcards->default-media-type
   [representation]
@@ -93,54 +114,50 @@
     (assoc representation :media-type *default-media-type*)
     representation))
 
-(defn- best-representation
-  [request]
-  (first
-   (for [repr (accept request)
-         :let [repr (wildcards->default-media-type repr)
-               ser (renderable? repr)]
-         :when ser]
-     repr)))
+(defn- renderable?
+  "Using librarator's representation namespace for response rendering."
+  [repr]
+  ((methods render-map-generic) (:media-type repr)))
 
-(defn- content?
-  [request]
-  (some-> (get-in request [:headers "content-length"])
-          (#(Long. %))
-          (pos?)))
+(defn- matching-serializers
+  [accepts]
+  (for [repr accepts
+        :let [repr (wildcards->default-media-type repr)
+              ser (renderable? repr)]
+        :when ser]
+    [repr #(ser % {:represenation repr})]))
 
-(defn- negotiate
-  [request]
+(defn wrap-acceptable
+  ([handler]
+   (wrap-acceptable handler #{}))
 
-  (let [payload? (content? request)
-        des (when payload? (deserializable? request))
-        repr (best-representation request)]
+  ([handler produces]
+   {:pre [(set? produces)]}
 
-    (cond
-     (and payload? (nil? des)) :unsupported
-     (nil? repr)               :not-acceptable
-     :else                     {:des des :repr repr})))
+   (fn [request]
+     (let [acceptable   (accept request)
+           [best-match] (matching-serializers acceptable)
+           [repr ser]   best-match
+           producable   (some (comp produces :media-type) acceptable)]
+       (cond
+         producable (handler request)
 
-(defn- marshall
-  [handler request {:as opts :keys [des repr]}]
+         ser (-> (handler request)
+                 (update-in [:body] ser)
+                 (assoc-in [:headers "Content-Type"]
+                           (format "%s; charset=%s"
+                                   (:media-type repr)
+                                   (:charset repr "UTF-8"))))
 
-  (let [body    (body-string request)
-        entity  ((or des identity) body)
-        request (assoc request :body entity)
-        resp    (handler request)
+         :else (not-acceptable request))))))
 
-        ;; serializes response
-        lib (as-response (:body resp resp) {:representation repr})]
-
-    ;; merge lib result with handler result
-    (-> resp
-        (assoc :body (:body lib))
-        (update-in [:headers] merge (:headers lib)))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; negotiation
 
 (defn wrap-negotiator
-  [handler]
-  (fn [request]
-    (let [negotiated (negotiate request)]
-      (condp = negotiated
-        :unsupported    (unsupported-media request)
-        :not-acceptable (not-acceptable request)
-        (marshall handler request negotiated)))))
+  [handler & {:keys [consumes produces]
+              :or {consumes #{}
+                   produces #{}}}]
+  (-> handler
+      (wrap-supported-media consumes)
+      (wrap-acceptable produces)))

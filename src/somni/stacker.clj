@@ -43,17 +43,19 @@
 
 (defn- config-stacker
   [resource-desc op deps on-error]
-  {:handler (get-in resource-desc [op :handler])
-   :uri     (get-in resource-desc [:uri])
-   :op       op
-   :extract (#{:any :get} op)
-   :schema  (get-in resource-desc [op :schema])
-   :conneg  (not-any? (get-in resource-desc [op]) [:produces :consumes])
-   :on-error on-error
-   :deps     deps})
+  (assoc resource-desc
+         :handler (get-in resource-desc [op :handler])
+         :uri     (get-in resource-desc [:uri])
+         :op       op
+         :extract (:get op)
+         :schema  (get-in resource-desc [op :schema])
+         :produces (set (get-in resource-desc [op :produces] (:produces resource-desc)))
+         :consumes (set (get-in resource-desc [op :consumes] (:consumes resource-desc)))
+         :on-error on-error
+         :deps     deps))
 
 (defn- stack-middleware
-  [{:keys [handler deps uri extract schema conneg on-error auth acls]}]
+  [{:keys [handler deps uri extract schema on-error auth acls produces consumes]}]
 
   {:pre [handler uri]}
 
@@ -64,7 +66,7 @@
     :always      (wrap-response-as-ring)
     (seq schema) (wrap-request-validation schema)
     :always      (wrap-uncaught-exceptions on-error) ; serializable errors
-    conneg       (wrap-negotiator)
+    :always      (wrap-negotiator :produces produces :consumes consumes)
     :always      (wrap-uncaught-exceptions on-error))) ; unserializable errors
 
 (def ^:private configure-handler (comp stack-middleware config-stacker))
