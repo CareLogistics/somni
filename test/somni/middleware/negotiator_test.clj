@@ -15,7 +15,8 @@
   (is (= (wrapped-1 {:body "...",
                       :headers {"content-length" 9}})
          {:status 415,
-          :body "Unsupported Content-Type"})
+          :body "\"Unsupported Content-Type\""
+          :headers {"Content-Type" "application/json;charset=UTF-8"}})
 
       "Unsupported media type for deserialization")
 

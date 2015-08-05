@@ -145,7 +145,7 @@
          ser (-> (handler request)
                  (update-in [:body] ser)
                  (assoc-in [:headers "Content-Type"]
-                           (format "%s; charset=%s"
+                           (format "%s;charset=%s"
                                    (:media-type repr)
                                    (:charset repr "UTF-8"))))
 
