@@ -12,7 +12,7 @@
             [clojure.data.json :as json]
             [clojure.edn :as edn]
             [liberator.representation :refer :all]
-            [ring.util.request :refer [body-string]]
+            [ring.util.request :refer [body-string content-length]]
             [somni.http.errors :refer [not-acceptable unsupported-media]]
             [somni.http.forms :refer [form-decode]]
             [somni.http.mime :refer :all]))
@@ -46,9 +46,8 @@
 
 (defn- get-content
   [request]
-  (let [content-length (Long. (get-in request [:headers "content-length"] -1))]
-    (when (pos? content-length)
-      (:body request))))
+  (when (content-length request)
+    (body-string request)))
 
 (defn wrap-supported-media
   ([handler]
@@ -64,7 +63,7 @@
        (cond
          (nil? body) (handler request)
          consumable  (handler request)
-         des         (handler (update-in request [:body] des))
+         des         (handler (assoc request :body (des body)))
          :else       (unsupported-media request))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

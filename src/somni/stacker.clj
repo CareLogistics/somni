@@ -16,7 +16,8 @@
             [somni.middleware.negotiator :refer [wrap-negotiator]]
             [somni.middleware.bindings :refer [attach-bindings]]
             [somni.middleware.to-ring :refer [wrap-response-as-ring]]
-            [somni.middleware.exceptions :refer [wrap-uncaught-exceptions]]))
+            [somni.middleware.exceptions :refer [wrap-uncaught-exceptions
+                                                 pprint-ser]]))
 
 (def ops #{:get :put :post :delete})
 
@@ -67,7 +68,7 @@
     (seq schema) (wrap-request-validation schema)
     :always      (wrap-uncaught-exceptions on-error) ; serializable errors
     :always      (wrap-negotiator :produces produces :consumes consumes)
-    :always      (wrap-uncaught-exceptions on-error))) ; unserializable errors
+    :always      (wrap-uncaught-exceptions on-error pprint-ser))) ; unserializable errors
 
 (def ^:private configure-handler (comp stack-middleware config-stacker))
 

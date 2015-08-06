@@ -14,7 +14,8 @@
     (is (:cause e))
     (is (= (get-in e [:cause :message]) "Boom"))))
 
-(def ^:private weh (wrap-uncaught-exceptions exceptional-handler))
+(def ^:private weh (wrap-uncaught-exceptions exceptional-handler
+                                             server-error))
 (def ^:private wth (wrap-uncaught-exceptions throwing-handler
                                              #(server-error % :dev-mode)))
 

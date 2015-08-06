@@ -24,18 +24,22 @@
       (assoc details :cause (ex-details cause))
       details)))
 
-(defn wrap-uncaught-exceptions
-  "..."
-  ([next-fn on-error]
+(defn pprint-ser [expr] (with-out-str
+                          (clojure.pprint/pprint
+                           expr)))
 
-   {:pre [next-fn on-error]}
+(defn wrap-uncaught-exceptions
+  ([next-fn on-error] (wrap-uncaught-exceptions next-fn on-error identity))
+
+  ([next-fn on-error serialization-fn]
+
+   {:pre [every? ifn? [next-fn on-error serialization-fn]]}
 
    (fn [req]
      (let [resp (try (next-fn req) (catch Exception e e))]
        (if (instance? Throwable resp)
-         (on-error (merge {:body {:request req
-                                  :details (ex-details resp)}}
+         (on-error (merge {:body (serialization-fn
+                                  {:request req
+                                   :details (ex-details resp)})}
                           (ex-data resp)))
-         resp))))
-
-  ([next-fn] (wrap-uncaught-exceptions next-fn server-error)))
+         resp)))))
