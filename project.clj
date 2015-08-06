@@ -1,4 +1,4 @@
-(defproject somni "1.0.0-15"
+(defproject somni "1.0.0-16"
   :description
   "Stop writing Ring handlers; write the functions you want to write."
 

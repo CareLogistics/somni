@@ -47,7 +47,7 @@
          :handler (get-in resource-desc [op :handler])
          :uri     (get-in resource-desc [:uri])
          :op       op
-         :extract (:get op)
+         :extract (#{:get} op)
          :schema  (get-in resource-desc [op :schema])
          :produces (set (get-in resource-desc [op :produces] (:produces resource-desc)))
          :consumes (set (get-in resource-desc [op :consumes] (:consumes resource-desc)))
