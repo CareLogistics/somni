@@ -141,12 +141,13 @@
        (cond
          producable (handler request)
 
-         ser (-> (handler request)
-                 (update-in [:body] ser)
-                 (assoc-in [:headers "Content-Type"]
-                           (format "%s;charset=%s"
-                                   (:media-type repr)
-                                   (:charset repr "UTF-8"))))
+         ser (let [resp (handler request)]
+               (when (:body resp)
+                 (-> (update-in resp [:body] ser)
+                     (assoc-in [:headers "Content-Type"]
+                               (format "%s;charset=%s"
+                                       (:media-type repr)
+                                       (:charset repr "UTF-8"))))))
 
          :else (not-acceptable request))))))
 
