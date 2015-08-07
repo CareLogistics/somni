@@ -142,12 +142,13 @@
          producable (handler request)
 
          ser (let [resp (handler request)]
-               (when (:body resp)
+               (if (:body resp)
                  (-> (update-in resp [:body] ser)
                      (assoc-in [:headers "Content-Type"]
                                (format "%s;charset=%s"
                                        (:media-type repr)
-                                       (:charset repr "UTF-8"))))))
+                                       (:charset repr "UTF-8"))))
+                 resp))
 
          :else (not-acceptable request))))))
 
