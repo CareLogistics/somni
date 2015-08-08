@@ -25,6 +25,11 @@
 
 (defn uri->path [uri] (remove empty? (str/split (or uri "") #"/")))
 
+(defn greedy-path?
+  [path]
+  (when (#{\* \?} (last path))
+    (apply str (butlast path))))
+
 (defn desc [a b] (compare b a))
 
 (def ^:private clj-data #{ \{ \[ \( })

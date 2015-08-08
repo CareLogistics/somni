@@ -19,10 +19,6 @@
   [uri]
   (str/replace uri #"[:$][^\/]+(\/\?$)?|\?$" "*"))
 
-(defn- greedy-path?
-  [path]
-  (when (#{\* \?} (last path)) (apply str (butlast path))))
-
 (defn- has-route?
   [router op path]
   (op (get-in router path)))
@@ -41,8 +37,8 @@
   "add a new route handler to a router"
   ([router op path handler]
    (if-some [gpath (->path (greedy-path? path))]
-     (assoc-route router op gpath [::cut handler])
-     (assoc-route router op (->path path)  handler)))
+     (assoc-route router op (or (seq gpath) ["*"]) [::cut handler])
+     (assoc-route router op (->path path) handler)))
 
   ([router [op path handler]] (add-route router op path handler)))
 

@@ -74,7 +74,7 @@
     (is
      (= (find-handler router :get ["z" "r"])
         'index-page)
-     "Trailing GLOB is a greedy match")
+     "Trailing GLOB is a matches unmatched routes greedily")
 
     (is
      (= (find-handler router :get ["site-map" "Andrew" "c"

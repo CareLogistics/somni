@@ -46,7 +46,7 @@
 
 (defn- get-content
   [request]
-  (when (content-length request)
+  (when (pos? (or (content-length request) 0))
     (body-string request)))
 
 (defn wrap-supported-media
@@ -61,7 +61,7 @@
            consumable (when repr (consumes (:media-type repr)))
            des        (when repr (when-not consumable (deserializable? repr)))]
        (cond
-         (nil? body) (handler request)
+         (nil? body) (handler (assoc request :body nil))
          consumable  (handler request)
          des         (handler (assoc request :body (des body)))
          :else       (unsupported-media request))))))

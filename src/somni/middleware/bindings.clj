@@ -8,7 +8,7 @@
 ;;; You must not remove this notice, or any other, from this software.
 
 (ns somni.middleware.bindings
-  (:require [somni.misc :refer [uri->path decode]]))
+  (:require [somni.misc :refer [uri->path decode greedy-path?]]))
 
 (def ^:private bindings-rexp #"\w+|([:$])([^\/]*)")
 
@@ -17,7 +17,9 @@
 (defn get-binding-info
   "Extracts binding information from a uri."
   [uri]
-  (for [[i [_ x k]] (zipmap (range) (re-seq bindings-rexp uri))
+  (for [[i [_ x k]] (zipmap (range)
+                            (re-seq bindings-rexp (or (greedy-path? uri)
+                                                      uri)))
         :let [f (val-fn x)]
         :when f]
     [i (keyword k) f]))

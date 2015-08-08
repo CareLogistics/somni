@@ -29,7 +29,11 @@
   {:user (assoc identity :uid (db uid))})
 
 (def sample-resources
-  [{:uri "hello/:name"
+  [{:uri "hello/:name*"
+    :doc "Hello Somni example"
+    :get #'hello}
+
+   {:uri "hello"
     :doc "Hello Somni example"
     :get #'hello}
 
