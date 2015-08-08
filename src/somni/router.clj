@@ -21,7 +21,7 @@
 
 (defn- greedy-path?
   [path]
-  (when (= "*" (last path)) (butlast path)))
+  (when (#{\* \?} (last path)) (apply str (butlast path))))
 
 (defn- has-route?
   [router op path]
@@ -40,11 +40,9 @@
 (defn add-route
   "add a new route handler to a router"
   ([router op path handler]
-   (let [path  (->path path)
-         gpath (greedy-path? path)]
-     (if gpath
-       (assoc-route router op gpath [::cut handler])
-       (assoc-route router op  path  handler))))
+   (if-some [gpath (->path (greedy-path? path))]
+     (assoc-route router op gpath [::cut handler])
+     (assoc-route router op (->path path)  handler)))
 
   ([router [op path handler]] (add-route router op path handler)))
 
@@ -77,7 +75,7 @@
                          (= ::cut (first handler))) (second handler))]
 
       (cond
-        cut              cut
+        cut                cut
         (and path router) (recur router path fall-back)
         (nil? path)       (or handler   :no-such-op)
         (nil? router)     (or fall-back :no-such-path)))))
