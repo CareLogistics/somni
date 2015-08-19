@@ -16,4 +16,5 @@
                  [liberator "0.13"]
                  [camel-snake-kebab "0.3.2"]
                  [metosin/ring-swagger "0.20.4"]
-                 [metosin/scjsv "0.2.0"]])
+                 [metosin/scjsv "0.2.0"]
+                 [ring.middleware.etag "1.0.0-SNAPSHOT"]])

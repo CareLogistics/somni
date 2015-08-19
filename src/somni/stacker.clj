@@ -17,7 +17,8 @@
             [somni.middleware.bindings :refer [attach-bindings]]
             [somni.middleware.to-ring :refer [wrap-response-as-ring]]
             [somni.middleware.exceptions :refer [wrap-uncaught-exceptions
-                                                 pprint-ser]]))
+                                                 pprint-ser]]
+            [ring.middleware.etag.core :as etag]))
 
 (def ops #{:get :put :post :delete})
 
@@ -55,6 +56,11 @@
          :on-error on-error
          :deps     deps))
 
+(def +global-etag+ "Clojure-etag")
+
+(defn create-etag [_]
+  +global-etag+)
+
 (defn- stack-middleware
   [{:keys [handler deps uri extract schema on-error auth acls produces consumes]}]
 
@@ -65,6 +71,7 @@
     :always      (attach-bindings uri)
     extract      (wrap-extractions uri)
     :always      (wrap-response-as-ring)
+    :always      (etag/with-etag {:etag-generator create-etag})
     (seq schema) (wrap-request-validation schema)
     :always      (wrap-uncaught-exceptions on-error) ; serializable errors
     :always      (wrap-negotiator :produces produces :consumes consumes)
