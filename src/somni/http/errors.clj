@@ -10,9 +10,6 @@
 (ns somni.http.errors
   (:require [clojure.pprint :refer [pprint]]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Client-side errors
-
 (defn malformed-request  [_] {:status 400, :body "Malformed request"})
 (defn not-authenticated  [_] {:status 401, :body "Authentication required"})
 (defn access-denied      [_] {:status 403, :body "Access denied"})
@@ -26,18 +23,18 @@
                                    (<  status 500)
                                    status))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Server-side errors
-
 (defn server-error? [status] (and (number? status)
                                    (>= status 500)
                                    (<  status 600)
                                    status))
 
+(defn http-error? [status] (or (client-error? status)
+                               (server-error? status)))
+
 (defn server-error
   "..."
   ([{:as resp :keys [status]} dev-mode]
-   (let [status (or (server-error? status) 500)
+   (let [status (or (http-error? status) 500)
          resp (assoc resp :status status)]
 
      (if dev-mode
@@ -47,6 +44,3 @@
             :body {:error "Internal server error"}}))))
 
   ([resp] (server-error resp nil)))
-
-(defn http-error? [status] (or (client-error? status)
-                               (server-error? status)))
