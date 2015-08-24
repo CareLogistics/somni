@@ -21,5 +21,5 @@
     (is (= (t-handler {})
            (t-handler {:request-method :get})
            (t-handler {:request-method :delete})
-           {:status 200 :body 't})
+           {:status 200 :body 't :headers {"Etag" (str (hash 't))}})
         "a handler that returns a non-nil value results in 200")))
