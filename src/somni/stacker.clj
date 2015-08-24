@@ -17,7 +17,8 @@
             [somni.middleware.bindings :refer [attach-bindings]]
             [somni.middleware.to-ring :refer [wrap-response-as-ring]]
             [somni.middleware.exceptions :refer [wrap-uncaught-exceptions
-                                                 pprint-ser]]))
+                                                 pprint-ser]]
+            [somni.middleware.etag :refer [wrap-etag]]))
 
 (def ops #{:get :put :post :delete})
 
@@ -65,6 +66,7 @@
     :always      (attach-bindings uri)
     extract      (wrap-extractions uri)
     :always      (wrap-response-as-ring)
+    extract      (wrap-etag)
     (seq schema) (wrap-request-validation schema)
     :always      (wrap-uncaught-exceptions on-error) ; serializable errors
     :always      (wrap-negotiator :produces produces :consumes consumes)
