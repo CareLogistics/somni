@@ -38,8 +38,7 @@
    (fn [req]
      (let [resp (try (next-fn req) (catch Exception e e))]
        (if (instance? Throwable resp)
-         (on-error (merge {:body (serialization-fn
-                                  {:request req
-                                   :details (ex-details resp)})}
-                          (ex-data resp)))
+         (let [data (ex-data resp)
+               body (:body data {:request req, :details (ex-details resp)})]
+           (on-error (assoc data :body (serialization-fn body))))
          resp)))))

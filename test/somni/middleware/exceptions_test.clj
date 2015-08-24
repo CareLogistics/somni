@@ -3,8 +3,8 @@
             [clojure.test :refer :all]
             [somni.http.errors :refer [server-error]]))
 
-(def ^:private exceptional-handler (constantly (ex-info "Boom" {})))
-(def ^:private throwing-handler (fn [_] (throw (exceptional-handler))))
+(def ^:private exceptional-handler (constantly (ex-info "Boom" {:status 419})))
+(def ^:private throwing-handler (fn [_] (throw (ex-info "Boom" {}))))
 
 (deftest ex-details-test
   (let [e (ex-details (ex-info "Double Boom" {} (exceptional-handler)))]
@@ -14,17 +14,12 @@
     (is (:cause e))
     (is (= (get-in e [:cause :message]) "Boom"))))
 
-(def ^:private weh (wrap-uncaught-exceptions exceptional-handler
-                                             server-error))
-(def ^:private wth (wrap-uncaught-exceptions throwing-handler
-                                             #(server-error % :dev-mode)))
+(def ^:private weh (wrap-uncaught-exceptions exceptional-handler server-error))
+(def ^:private wth (wrap-uncaught-exceptions throwing-handler #(server-error % :dev-mode)))
 
 (deftest wrap-uncaught-exceptions-test
-  (is (= (:status (weh {}))
-         500))
-
-  (is (= (:body (weh {}))
-         {:error "Internal server error"}))
+  (is (= (weh {})
+         {:status 419, :body {:error "Internal server error"}}))
 
   (let [r (wth {})]
     (is (= (:status r) 500))
