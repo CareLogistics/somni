@@ -50,4 +50,5 @@
         (instance? Throwable resp) (throw resp)
 
         :else {:status (response-status request resp)
-               :body   resp}))))
+               :body   resp
+               :headers {"Etag" (str (hash resp))}}))))
