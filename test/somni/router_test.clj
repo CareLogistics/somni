@@ -77,8 +77,8 @@
      "Trailing GLOB is a matches unmatched routes greedily")
 
     (is
-     (= (find-handler router :get ["site-map" "Andrew" "c"
-                                   'users-index]))
+     (= (find-handler router :get ["site-map" "Andrew" "c"])
+        'users-index)
      "Non-trailing GLOB will only match specific path segment")
 
     (is
@@ -86,9 +86,9 @@
         'page-visitor-ad-impressions)
      "Multiple globs will match specific segments")
 
-    (is (= (find-handler router :get ["site-map" "Joe" "ad-metrics"])))
-    (is (= (find-handler router :get ["page" "1" "visitor" "1" "b"])))
-    (is (= (find-handler router :get ["page" "1" "2" "visitor" "1" "b"])))))
+    (is (find-handler router :get ["site-map" "Joe" "ad-metrics"]))
+    (is (find-handler router :get ["page" "1" "visitor" "1" "b"]))
+    (is (find-handler router :get ["page" "1" "2" "visitor" "1" "b"]))))
 
 (deftest router->handler-test
   (let [routes [[:get ["test"]           (fn [_] "test")]
@@ -97,9 +97,14 @@
         handler (router->handler router (fn [_] "missing"))]
 
 
-    (is (= (handler {:uri "/test",         :request-method :get}) "test"))
-    (is (= (handler {:uri "/user/profile", :request-method :put}) "profile"))
-    (is (= (handler {:uri "/a/b/c/d",      :request-method :get}) "missing"))
+    (is (= (handler {:uri "/test", :request-method :get})
+           "test"))
+
+    (is (= (handler {:uri "/user/profile", :request-method :put})
+           "profile"))
+
+    (is (= (handler {:uri "/a/b/c/d", :request-method :get})
+           "missing"))
 
     (is (= (handler {:uri "/test", :request-method :put})
            {:status 405, :body "Unsupported HTTP method"}))))

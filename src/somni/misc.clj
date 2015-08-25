@@ -28,7 +28,7 @@
 (defn greedy-path?
   [path]
   (when (#{\* \?} (last path))
-    (apply str (butlast path))))
+    (str/join (butlast path))))
 
 (defn desc [a b] (compare b a))
 

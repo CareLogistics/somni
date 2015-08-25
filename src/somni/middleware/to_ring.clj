@@ -51,4 +51,4 @@
 
         :else {:status (response-status request resp)
                :body   resp
-               :headers {"Etag" (str (hash resp))}}))))
+               :headers {"ETag" (str (hash resp))}}))))

@@ -33,7 +33,7 @@
 
   ([next-fn on-error serialization-fn]
 
-   {:pre [every? ifn? [next-fn on-error serialization-fn]]}
+   {:pre [(every? ifn? [next-fn on-error serialization-fn])]}
 
    (fn [req]
      (let [resp (try (next-fn req) (catch Exception e e))]

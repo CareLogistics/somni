@@ -54,7 +54,10 @@
   (fn [{:as request :keys [uri path request-method]}]
     (let [response (handler request)]
       (if (= :get request-method)
-        (extract response (map ->kebab-case (skip-fn (or path (uri->path uri)))))
+        (extract response
+                 (map ->kebab-case
+                      (skip-fn (or path
+                                   (uri->path uri)))))
         response))))
 
 (defn- mk-skip-fn [uri]

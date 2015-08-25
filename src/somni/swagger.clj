@@ -63,8 +63,7 @@
 (defn swagger-api
   [resources]
   (let [json (render-map-generic
-              (-> (resources->swagger resources)
-                  (rs/swagger-json))
+              (rs/swagger-json (resources->swagger resources))
               {:representation
                {:media-type "application/json"
                 :charset "UTF-8"}})]

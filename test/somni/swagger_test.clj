@@ -16,7 +16,8 @@
         :produces ["app/fluff"]}
   ^User sample-fn
   "Doc for sample-fn"
-  [{:keys [id name address] :as user}])
+  [{:keys [id name address] :as user}]
+  {:id id :name name :address address})
 
 (defn ^{:consumes ["application/eliza"]}
   hello-api [] {:msg "Hello"})

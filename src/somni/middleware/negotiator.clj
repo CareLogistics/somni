@@ -143,11 +143,11 @@
 
          ser (let [resp (handler request)]
                (if (:body resp)
-                 (-> (update-in resp [:body] ser)
-                     (assoc-in [:headers "Content-Type"]
-                               (format "%s;charset=%s"
-                                       (:media-type repr)
-                                       (:charset repr "UTF-8"))))
+                 (assoc-in (update-in resp [:body] ser)
+                           [:headers "Content-Type"]
+                           (format "%s;charset=%s"
+                                   (:media-type repr)
+                                   (:charset repr "UTF-8")))
                  resp))
 
          :else (not-acceptable request))))))
