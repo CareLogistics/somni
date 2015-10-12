@@ -12,11 +12,13 @@
             [clojure.string :as str]
             [somni.misc :refer [uri->path]]))
 
-(defn- key-match [k [h]] (= (name k) h))
+(defn- key-match [k h] (= (name k) h))
 
 (defn- val-match [v [_ b]] (and b (= (str v) b)))
 
 (defn- as-map [x] (if (map? x) x (bean x)))
+
+(defn- first-key [[h :as xpath]] (->kebab-case h))
 
 (defn- extract*
   [obj xpath]
@@ -26,7 +28,8 @@
     (nil? obj) []
 
     (map? obj) (for [[k v] obj
-                     :when (key-match k xpath)
+                     :let [h (first-key xpath)]
+                     :when (key-match k h)
                      x (extract* v (next xpath))]
                  x)
 
@@ -35,7 +38,8 @@
                   (for [i obj
                         :let [m (as-map i)]
                         [k v] m
-                        :when (key-match k xpath)]
+                        :let [h (first-key xpath)]
+                        :when (key-match k h)]
                     (if (val-match v xpath)
                       (extract* [m] (drop 2 xpath))
                       (extract*  v  (drop 1 xpath))))))
@@ -55,9 +59,8 @@
     (let [response (handler request)]
       (if (= :get request-method)
         (extract response
-                 (map ->kebab-case
-                      (skip-fn (or path
-                                   (uri->path uri)))))
+                 (skip-fn (or path
+                              (uri->path uri))))
         response))))
 
 (defn- mk-skip-fn [uri]
