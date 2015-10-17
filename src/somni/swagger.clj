@@ -1,5 +1,5 @@
 (ns somni.swagger
-  (:require [camel-snake-kebab.core :refer (->camelCase)]
+  (:require [camel-snake-kebab.core :refer (->camelCase ->PascalCase)]
             [clojure.string :as str]
             [liberator.representation :refer (render-map-generic)]
             [ring.swagger.swagger2 :as rs]
@@ -15,22 +15,21 @@
 
 (defn schema? [x] (satisfies? s/Schema x))
 
-(defn- meta->swagger
-  [{:keys [doc tag response consumes produces schema]}]
+(defn- bindings->swagger
+  [bindings]
+  (zipmap (map ->camelCase bindings) (repeat s/Str)))
+
+(defn- ->swagger
+  [{:keys [doc tag response consumes produces schema bindings]}]
 
   (cond-> {}
     doc                 (assoc :summary doc)
     consumes            (assoc :consumes consumes)
     produces            (assoc :produces produces)
+    (seq bindings)      (assoc-in [:parameters :path] (bindings->swagger bindings))
     (schema? response)  (assoc-in [:responses 200 :schema] response)
     (schema? tag)       (assoc-in [:responses 200 :schema] tag)
     (schema? schema)    (assoc-in [:parameters :body] schema)))
-
-(defn- bindings->swagger
-  [bindings]
-  (when (seq bindings)
-    {:parameters {:path (zipmap (map ->camelCase bindings)
-                                (repeat s/Str))}}))
 
 (defn resource->swagger
   [{:as resource :keys [uri]}]
@@ -41,9 +40,8 @@
           :let [handler (op resource)]
           :when (var? handler)]
 
-      [[uri op] (merge (bindings->swagger (get-path-params uri))
-                       (meta->swagger (merge resource
-                                             (meta handler))))])))
+      [[uri op] (->swagger (assoc (merge resource (meta handler))
+                                  :bindings (get-path-params uri)))])))
 
 (defn resources->swagger
   [resources]
@@ -60,14 +58,57 @@
            {}
            (mapcat resource->swagger resources))})
 
+(defn- recase
+  [x]
+  (if (or (string? x)
+          (instance? clojure.lang.Named x))
+    (->camelCase x)
+    x))
+
+(defn- definitions-required?
+  [x]
+  (and (instance? clojure.lang.MapEntry x)
+       (= :required (first x))
+       (coll? (second x))))
+
+(defn- ref?
+  [x]
+  (and (instance? clojure.lang.MapEntry x)
+       (= :$ref (first x))))
+
+(defn- fix-def-ref
+  [x]
+  (let [z (recase (last (str/split x #"/")))]
+    (format "#/definitions/%s" z)))
+
+(defn- fix-casing
+  [sw]
+  (clojure.walk/prewalk
+   (fn [arg]
+     (cond
+       (definitions-required? arg)
+       [:required (map ->camelCase (second arg))]
+
+       (ref? arg)
+       [:$ref (fix-def-ref (second arg))]
+
+       (instance? clojure.lang.MapEntry arg)
+       [(recase (first arg)) (second arg)]
+
+       :else arg))
+   sw))
+
+(defn swagger-json
+  [resources]
+  (render-map-generic (fix-casing
+                       (rs/swagger-json (resources->swagger resources)))
+                      {:representation
+                       {:media-type "application/json"
+                        :charset "UTF-8"}}))
+
 (defn swagger-api
   [resources]
-  (let [json (render-map-generic
-              (rs/swagger-json (resources->swagger resources))
-              {:representation
-               {:media-type "application/json"
-                :charset "UTF-8"}})]
-
+  (let [json (swagger-json resources)]
     (fn [_] {:status 200,
             :body  json                 ; cached indefinitely
             :headers {"Content-Type" "application/json"}})))
