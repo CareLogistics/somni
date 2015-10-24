@@ -13,7 +13,8 @@
 
 (defn- key-match [k [h]] (= (->kebab-case h) (->kebab-case (safe-name k))))
 
-(defn- val-match [v [_ b]] (= b (safe-name v)))
+(defn- val-match [v [_ b]] (some (comp #{b} safe-name)
+                                 (if (coll? v) v [v])))
 
 (defn- as-map [x] (if (map? x) x (bean x)))
 
