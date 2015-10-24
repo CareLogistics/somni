@@ -9,42 +9,37 @@
 
 (ns somni.middleware.extractions
   (:require [camel-snake-kebab.core :refer [->kebab-case]]
-            [clojure.string :as str]
-            [somni.misc :refer [uri->path]]))
+            [somni.misc :refer [uri->path safe-name]]))
 
-(defn- key-match [k h] (= (name k) h))
+(defn- key-match [k [h]] (= (->kebab-case h) (->kebab-case (safe-name k))))
 
-(defn- val-match [v [_ b]] (and b (= (str v) b)))
+(defn- val-match [v [_ b]] (= b (safe-name v)))
 
 (defn- as-map [x] (if (map? x) x (bean x)))
-
-(defn- first-key [[h :as xpath]] (->kebab-case h))
 
 (defn- extract*
   [obj xpath]
   (cond
     (empty? xpath) [obj]
 
-    (nil? obj) []
+    (nil? obj)     []
 
-    (map? obj) (for [[k v] obj
-                     :let [h (first-key xpath)]
-                     :when (key-match k h)
-                     x (extract* v (next xpath))]
-                 x)
+    (map? obj)     (for [[k v] obj
+                         :when (key-match k xpath)
+                         x (extract* v (next xpath))]
+                     x)
 
-    (coll? obj) (distinct
-                 (flatten
-                  (for [i obj
-                        :let [m (as-map i)]
-                        [k v] m
-                        :let [h (first-key xpath)]
-                        :when (key-match k h)]
-                    (if (val-match v xpath)
-                      (extract* [m] (drop 2 xpath))
-                      (extract*  v  (drop 1 xpath))))))
+    (coll? obj)    (distinct
+                    (for [i obj
+                          :let [m (as-map i)]
+                          [k v] m
+                          :when (key-match k xpath)
+                          x (if (val-match v xpath)
+                              (extract* [m] (drop 2 xpath))
+                              (extract*  v  (drop 1 xpath)))]
+                      x))
 
-    :else (extract* (bean obj) xpath)))
+    :else          (extract* (bean obj) xpath)))
 
 (defn extract
   [obj xpath]

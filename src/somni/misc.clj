@@ -9,10 +9,10 @@
 
 (ns somni.misc
   "Miscellaneous functions that don't have an obvious namespace."
-  (:require [clojure.string :as str]
+  (:require [camel-snake-kebab.core :refer [->kebab-case]]
             [clojure.edn :as edn]
-            [ring.util.codec :refer [url-decode]]
-            [camel-snake-kebab.core :refer [->kebab-case]]))
+            [clojure.string :as str]
+            [ring.util.codec :refer [url-decode]]))
 
 (defn thunk? [x]
   (or (instance? clojure.lang.IFn x)
@@ -56,3 +56,9 @@
        (map (fn [[k v]] [(keyword (->kebab-case k)) (decode v)]))
        (vec)
        (into {})))
+
+(defn safe-name [x]
+  (cond
+    (string? x)                      x
+    (instance? clojure.lang.Named x) (name x)
+    :else                            (str x)))
