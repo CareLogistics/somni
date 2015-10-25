@@ -7,7 +7,9 @@
   "Attach an etag header to response header. If old-etag and new-etag match
   then return a 304."
   [old-etag new-etag response]
-  (if (= old-etag new-etag)
+  (if (and old-etag
+           new-etag
+           (= old-etag new-etag))
     (not-modified-response new-etag)
     response))
 
