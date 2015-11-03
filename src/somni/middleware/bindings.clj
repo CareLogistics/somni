@@ -10,7 +10,7 @@
 (ns somni.middleware.bindings
   (:require [somni.misc :refer [uri->path decode greedy-path?]]))
 
-(def ^:private bindings-rexp #"[^\/\:\$]+|([:$])([^\/]*)")
+(def ^:private bindings-rexp #"([:$])([^\/]+)|[^\/]+")
 
 (def val-fn {":" decode, "$" identity})
 
