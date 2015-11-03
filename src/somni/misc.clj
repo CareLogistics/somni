@@ -37,7 +37,7 @@
 (defn- decode-clj [[x :as xs]]
   (when (clj-data x) (edn/read-string xs)))
 
-(def ^:private re-num #"([+-]?\d+\.?\d*([eE][+-]\d*)?)")
+(def ^:private re-num #"^[+-]?([1-9]{1}\d*|0{1})(\.\d*)?{0,1}([Ee][+-]?\d+)?$")
 
 (defn- decode-num [xs]
   (when-some [[[num-str]] (re-seq re-num xs)] (edn/read-string xs)))
