@@ -18,4 +18,18 @@
            {:user {:uid 123},
             :page 7891,
             :sub-page nil})
-        "Partial bound path test with Clojure data structures")))
+        "Partial bound path test with Clojure data structures"))
+
+  (let [handler (attach-bindings
+                  identity "/abc-def/:x/ghi/:y")]
+    (is (= (:bindings
+             (handler {:uri "/abc-def/1/ghi/2"}))
+           {:x 1, :y 2})
+        "URI with dash"))
+
+  (let [handler (attach-bindings
+                  identity "/abc+def/:x/ghi/:y")]
+    (is (= (:bindings
+             (handler {:uri "/abc+def/1/ghi/2"}))
+           {:x 1, :y 2})
+        "URI with plus")))
