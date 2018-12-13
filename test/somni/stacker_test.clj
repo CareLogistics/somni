@@ -80,3 +80,27 @@
 
     (is (= (:status (sm test-req))
            500))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; bug-16 unit test
+
+(defn bug16-handler
+  [catalog-conn code entry codetable]
+  [code entry codetable])
+
+(def bug16-resource
+  {:uri "codes/:code/:entry"
+   :doc "Test case resources for bug-16 fix"
+   :put #'bug16-handler})
+
+(deftest bug16-test
+  (let [described-rsc (#'somni.stacker/describe-resource bug16-resource)
+        sm (#'somni.stacker/configure-handler described-rsc :put {} identity)
+        test-req-1 {:uri "/codes/foo/bar"
+                    :request-method :put
+                    :headers {"content-type" "application/json;charset=UTF-8"
+                              "content-length" 54}
+                    :body "{\"ordinal\":1,\"name\":\"Foo\",\"value\":\"Bar\"}"}]
+    (is (= "[\"foo\",\"bar\",{\"ordinal\":1,\"name\":\"Foo\",\"value\":\"Bar\"}]"
+           (:body (sm test-req-1)))
+        (with-out-str (clojure.pprint/pprint described-rsc)))))
