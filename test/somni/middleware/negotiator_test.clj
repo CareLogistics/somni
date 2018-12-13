@@ -41,9 +41,9 @@
 
 (deftest test-json-deserialize
   (is (= (wrapped-2 {:body "{\"alphaBeta\":1,\"beta_max\":2}"
-                            :headers {"accept" "*/*"
-                                      "content-type" "application/json"
-                                      "content-length" 28}})
+                     :headers {"accept" "*/*"
+                               "content-type" "application/json"
+                               "content-length" 28}})
          {:body "{\"alphaBeta\":1,\"betaMax\":2}",
           :headers {"Content-Type" "application/json;charset=UTF-8",
                     :deserialized {:alpha-beta 1,
